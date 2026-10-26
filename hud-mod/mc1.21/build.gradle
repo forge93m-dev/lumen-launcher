@@ -27,6 +27,6 @@ java { withSourcesJar() }
 
 sourceSets.main.java.srcDir '../common'
 // Things that differ between Minecraft versions live in compat/<kind>-<old|new>; gradle.properties picks one per kind.
-['matrix', 'items', 'keys', 'input', 'tex'].each { kind ->
+['matrix', 'items', 'keys', 'input', 'tex', 'skin'].each { kind ->
     sourceSets.main.java.srcDir "compat/${kind}-${project.property('compat_' + kind)}"
 }

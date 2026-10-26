@@ -14,7 +14,7 @@ h.run('Russian interface', async ({ js, wait, check, core }) => {
 
   const closeOverlays = () => js("document.querySelectorAll('.modal-wrap,.lightbox').forEach(m=>m.remove());0");
   await js(`S.updates={instId:'${inst.id}',list:[{id:'zoom',title:'Zoomify',from:'1.0',to:'1.1',type:'mod'}]};0`);
-  for (const v of ['home', 'instances', 'modules', 'hud', 'browse', 'modpacks', 'content', 'servers', 'screenshots', 'console', 'settings']) {
+  for (const v of ['home', 'instances', 'modules', 'hud', 'skin', 'browse', 'modpacks', 'content', 'servers', 'screenshots', 'console', 'settings']) {
     await js(`nav('${v}')`);
     await wait(['modules', 'browse', 'modpacks', 'home'].includes(v) ? 5000 : 2000);
     if (v === 'content') {

@@ -9,6 +9,7 @@ const instances = require('./core/instances');
 const mr = require('./core/modrinth');
 const modules = require('./core/modules');
 const hud = require('./core/hud');
+const skins = require('./core/skins');
 const doctor = require('./core/doctor');
 const packs = require('./core/packs');
 const migrate = require('./core/migrate');
@@ -158,6 +159,21 @@ handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers,
 handle('hud:get', (id) => hud.getConfig(id));
 handle('hud:set', (id, cfg) => hud.setConfig(id, cfg));
 handle('hud:reset', (id) => hud.resetConfig(id));
+
+// ---- player skins (see core/skins.js)
+const skinPayload = () => skins.list().map((s) => ({ ...s, png: `data:image/png;base64,${skins.read(s.id).toString('base64')}` }));
+const skinChanged = () => { skins.syncAll(); return skinPayload(); };
+handle('skins:list', () => skinPayload());
+handle('skins:pickImport', async () => {
+  const r = await dialog.showOpenDialog(win, { title: L('Choose a skin', 'Выберите скин'), filters: [{ name: L('Skin pictures', 'Картинки скинов'), extensions: ['png'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  skins.add(fs.readFileSync(r.filePaths[0]), { name: path.basename(r.filePaths[0], path.extname(r.filePaths[0])) });
+  return skinChanged();
+});
+handle('skins:fromNickname', async (name) => { await skins.addFromNickname(name); return skinChanged(); });
+handle('skins:use', (id) => { skins.setActive(id); return skinChanged(); });
+handle('skins:update', (id, patch) => { skins.update(id, patch); return skinChanged(); });
+handle('skins:remove', (id) => { skins.remove(id); return skinChanged(); });
 // Picture behind the in-game menu. The game only reads PNG, so any picture is converted (and shrunk to 1920 wide).
 const bgState = (id) => {
   const f = hud.menuBackgroundFile(id);
@@ -223,6 +239,7 @@ handle('game:launch', async (instId, server) => {
   send('game:state', { state: 'preparing', instId });
   try {
     await hud.sync(instId);
+    try { skins.sync(instId); } catch {} // the skin is a nicety, it must never stop the game from starting
     try { serverList.sync(instId, cfg.servers || []); } catch {} // a broken servers.dat must never stop the game from starting
     const ctx = await game.prepare(inst, throttled((p) => send('game:progress', p)));
     // Mods may have been installed while assets were downloading: merge into a fresh copy, never overwrite.

@@ -2,7 +2,7 @@
 // and spamming buttons does not replay animations or stack dialogs.
 const h = require('./harness');
 
-const pages = ['home', 'instances', 'modules', 'hud', 'browse', 'modpacks', 'content', 'servers', 'screenshots', 'console', 'settings'];
+const pages = ['home', 'instances', 'modules', 'hud', 'skin', 'browse', 'modpacks', 'content', 'servers', 'screenshots', 'console', 'settings'];
 const pageAnimations = "document.getAnimations().filter(a=>a.effect&&a.effect.target&&a.effect.target.classList&&a.effect.target.classList.contains('page')).length";
 
 h.run('Smoke test', async ({ js, wait, check, win, core }) => {

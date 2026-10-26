@@ -162,6 +162,7 @@ const NAV = [
   ['instances', 'Instances', 'layers'],
   ['modules', 'Client Modules', 'zap'],
   ['hud', 'HUD Editor', 'layout'],
+  ['skin', 'Skin', 'user'],
   ['browse', 'Browse', 'compass'],
   ['modpacks', 'Modpacks', 'gift'],
   ['content', 'Installed', 'package'],
@@ -923,6 +924,69 @@ VIEWS.servers = (page) => {
     pingServers(servers);
   });
   pingServers(S.cfg.servers);
+};
+
+// ---------------- player skin ----------------
+// The front of a skin (head, body, arms, legs and their second layers) drawn at `px` pixels per skin pixel.
+function drawSkin(canvas, dataUrl, slim, px) {
+  const img = new Image();
+  img.onload = () => {
+    const c = canvas.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    const arm = slim ? 3 : 4;
+    const part = (sx, sy, sw, sh, dx, dy) => c.drawImage(img, sx, sy, sw, sh, dx * px, dy * px, sw * px, sh * px);
+    part(8, 8, 8, 8, 4, 0); part(40, 8, 8, 8, 4, 0); // head and hat
+    part(4, 20, 4, 12, 4, 20); part(4, 36, 4, 12, 4, 20); // right leg, trousers
+    part(20, 52, 4, 12, 8, 20); part(4, 52, 4, 12, 8, 20); // left leg, trousers
+    part(20, 20, 8, 12, 4, 8); part(20, 36, 8, 12, 4, 8); // body, jacket
+    part(44, 20, arm, 12, 4 - arm, 8); part(44, 36, arm, 12, 4 - arm, 8); // right arm, sleeve
+    part(36, 52, arm, 12, 12, 8); part(52, 52, arm, 12, 12, 8); // left arm, sleeve
+  };
+  img.src = dataUrl;
+}
+
+function paintSkins() {
+  document.querySelectorAll('canvas[data-skin]').forEach((cv) => {
+    const sk = (S.skins || []).find((x) => x.id === cv.dataset.skin);
+    if (sk) drawSkin(cv, sk.png, sk.model === 'slim', +cv.dataset.px);
+  });
+}
+
+VIEWS.skin = async (page) => {
+  if (!S.skins) S.skins = await api.call('skins:list').catch(() => []);
+  if (S.view !== 'skin') return;
+  const active = S.skins.find((x) => x.active);
+  page.innerHTML = `
+    <div class="page-head"><div><h1>Skin</h1><p>The skin your own player wears in Lumen HUD instances. Only you see it: other players keep seeing your normal skin.</p></div></div>
+    <div class="skin-wrap">
+      <div class="card skin-now">
+        <div class="skin-stage">${active ? `<canvas width="160" height="320" data-skin="${active.id}" data-px="10"></canvas>` : `<div class="skin-none">${ic('user')}<div class="muted">The default skin</div></div>`}</div>
+        <h3 style="margin-top:14px">${active ? esc(active.name) : 'No custom skin'}</h3>
+        ${active ? `<div class="seg" style="margin-top:10px">${[['classic', 'Classic'], ['slim', 'Slim']].map(([k, l]) => `<button class="${active.model === k ? 'on' : ''}" data-act="skin-model" data-id="${active.id}" data-k="${k}">${l}</button>`).join('')}</div>
+          <div class="small muted" style="margin-top:8px">Slim has thinner arms (Alex). Pick the one your skin was made for.</div>
+          <button class="btn sm" style="margin-top:14px" data-act="skin-default">${ic('refresh')}Use the default skin</button>` : '<div class="small muted" style="margin-top:8px">Add a skin to the right to try it out.</div>'}
+      </div>
+      <div class="stack">
+        <div class="card">
+          <h3>Add a skin</h3><p>A 64×64 (or old 64×32) PNG file, or the skin of any Minecraft player.</p>
+          <div class="row" style="gap:10px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn primary" data-act="skin-import">${ic('image')}Choose a PNG file</button>
+            <div class="search" style="width:230px">${ic('user')}<input class="input" id="skin-nick" placeholder="Take a player's skin by nickname" maxlength="16"></div>
+            <button class="btn" data-act="skin-fetch">${ic('download')}Get skin</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Your skins</h3>
+          ${S.skins.length ? `<div class="skin-grid">${S.skins.map((x) => `<div class="skin-tile ${x.active ? 'on' : ''}" data-act="skin-use" data-id="${x.id}">
+            <canvas width="48" height="96" data-skin="${x.id}" data-px="3"></canvas><div class="skin-name">${esc(x.name)}</div>
+            <button class="icon-btn skin-del" data-act="skin-remove" data-id="${x.id}" title="Remove">${ic('trash')}</button></div>`).join('')}</div>` : '<div class="small muted" style="margin-top:8px">Nothing yet.</div>'}
+        </div>
+      </div>
+    </div>`;
+  paintSkins();
+  const nick = $('#skin-nick');
+  if (nick) nick.addEventListener('keydown', (e) => { if (e.key === 'Enter') ACTIONS['skin-fetch'](); });
 };
 
 VIEWS.screenshots = async (page) => {
@@ -1845,6 +1909,35 @@ const ACTIONS = {
     hudRenderPreview();
     hudRenderPanel();
     hudSave();
+  },
+  'skin-import': async () => {
+    try {
+      const r = await api.call('skins:pickImport');
+      if (!r) return;
+      S.skins = r;
+      render();
+    } catch (e) { toast(e.message, 'err'); }
+  },
+  'skin-fetch': async () => {
+    const box = $('#skin-nick');
+    const name = box && box.value.trim();
+    if (!name) return toast('Type a nickname first', 'err');
+    try {
+      S.skins = await api.call('skins:fromNickname', name);
+      toast('Skin added');
+      render();
+    } catch (e) { toast(e.message, 'err'); }
+  },
+  'skin-use': async (d) => {
+    S.skins = await api.call('skins:use', d.id);
+    render();
+  },
+  'skin-default': async () => { S.skins = await api.call('skins:use', null); render(); },
+  'skin-model': async (d) => { S.skins = await api.call('skins:update', d.id, { model: d.k }); render(); },
+  'skin-remove': async (d) => {
+    if (!(await confirmBox('Remove this skin?', 'It is deleted from the launcher. The picture you imported it from is not touched.', 'Remove'))) return;
+    S.skins = await api.call('skins:remove', d.id);
+    render();
   },
   'hud-preset': (d) => {
     const pr = S.hudInfo.presets[d.k];

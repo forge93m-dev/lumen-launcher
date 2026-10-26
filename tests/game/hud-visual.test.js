@@ -91,6 +91,8 @@ for (const version of VERSIONS) {
     }
     fs.mkdirSync(path.join(instances.dirOf(inst.id), 'config'), { recursive: true });
     fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-menu-bg.png'), makePng(480, 270));
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-skin.png'), makePng(64, 64));
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-skin.json'), JSON.stringify({ enabled: true, slim: true }));
     const i2 = instances.read(inst.id);
     const ctx = await game.prepare(i2, () => {});
     await instances.patch(inst.id, (x) => { x.loaderVersion = i2.loaderVersion; });
@@ -144,15 +146,16 @@ for (const version of VERSIONS) {
     assert.match(feat(/selftest: death message=/), /message=You died at 10 64 -21 \(Nether\) last=10 64 -21 \(Nether\)/, 'the death tracker must remember where you died');
     assert.match(feat(/selftest: freelook/), /player=unchanged cam=15\.0/, 'freelook must turn the camera and leave the player alone');
     assert.match(feat(/selftest: sneak toggle/), /sneak toggle true true false/, 'toggle sneak must flip on every press');
+    assert.match(feat(/selftest: skin /), /lumenhud[:/]player_skin\S* (SLIM|slim)/i, 'your own player must wear the skin from the launcher');
     // The self-test drags the FPS element in the editor with replayed GLFW mouse events.
     const drag = lines.find((l) => /selftest: drag/.test(l));
     assert.ok(drag && /drag OK/.test(drag), `dragging an element in the editor must work: ${drag || 'no drag result in the log'}`);
     const shots = path.join(instances.dirOf(inst.id), 'screenshots');
     const files = fs.existsSync(shots) ? fs.readdirSync(shots).filter((f) => f.endsWith('.png')) : [];
-    assert.equal(files.length, 4, `the self-test should have taken four screenshots (HUD, layout editor, menu with a picture, menu with a gradient); log tail:\n${lines.slice(-8).join('\n')}`);
+    assert.equal(files.length, 5, `the self-test should have taken five screenshots (skin, HUD, layout editor, menu with a picture, menu with a gradient); log tail:\n${lines.slice(-8).join('\n')}`);
     if (process.env.LUMEN_SHOTS) {
       fs.mkdirSync(process.env.LUMEN_SHOTS, { recursive: true });
-      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['hud', 'editor', 'menu', 'menu2'][i]}.png`)));
+      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['skin', 'hud', 'editor', 'menu', 'menu2'][i]}.png`)));
     }
     await sleep(2500);
     await instances.remove(inst.id);

@@ -152,6 +152,7 @@ public class LumenHud implements ClientModInitializer {
     private static final boolean HOLD = Boolean.getBoolean("lumenhud.hold");
     private int worldTicks;
     private static boolean forceZoom;
+    private net.minecraft.client.option.Perspective savedSelfPerspective;
 
     private void selfTest(MinecraftClient client) {
         worldTicks++;
@@ -174,6 +175,16 @@ public class LumenHud implements ClientModInitializer {
                 for (int i = 0; i < 3; i++) client.interactionManager.attackEntity(client.player, e);
                 break;
             }
+        }
+        if (worldTicks == 170) {
+            LOG.info("selftest: skin {}", SkinHooks.describe(client));
+            savedSelfPerspective = client.options.getPerspective();
+            client.options.setPerspective(net.minecraft.client.option.Perspective.THIRD_PERSON_BACK);
+        } else if (worldTicks == 190) {
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
+            
+        } else if (worldTicks == 195) {
+            client.options.setPerspective(savedSelfPerspective);
         }
         if (worldTicks == 200 || worldTicks == 330) {
             ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
