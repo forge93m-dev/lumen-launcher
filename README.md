@@ -10,7 +10,7 @@ npm start
 
 ## Features
 - **One-click PLAY** — downloads Minecraft, the correct Java runtime (from Mojang), libraries, assets and Fabric automatically.
-- **Lumen HUD** — our own Fabric mod (`hud-mod/`): FPS, CPS, ping, speed, clock, keystrokes, coordinates, armor, potion effects. Edit the layout in the launcher's **HUD Editor** (drag, scroll, right-click, colours); changes apply live in-game. Right Shift opens the in-game editor. Fabric 1.21, 1.21.1, 1.21.4, 1.21.8, 1.21.11 and 26.1 / 26.2 / 26.3 (`hud-mod/mc1.21`, `hud-mod/mc26`, shared code in `hud-mod/common`).
+- **Lumen HUD** — our own Fabric mod (`hud-mod/`): FPS, CPS, ping, speed, clock, keystrokes, coordinates, armor, potion effects, reach, combo, memory, session time, item counter (totems, golden apples, pearls, crystals), target info (name + health), server address and sprint status. Client features switched in the HUD Editor: **Toggle sprint**, **Fullbright**, **Zoom** (hold C). Edit the layout in the launcher's **HUD Editor** (drag, scroll, right-click, colours); changes apply live in-game. Right Shift opens the in-game editor. Fabric 1.21, 1.21.1, 1.21.4, 1.21.8, 1.21.11 and 26.1 / 26.2 / 26.3 (`hud-mod/mc1.21`, `hud-mod/mc26`, shared code in `hud-mod/common`).
 - **Modpacks** — browse Modrinth Fabric modpacks and install one as its own instance with one click; import or export `.mrpack` files (untrusted packs are validated: no path traversal, trusted download hosts only, checksums verified).
 - **Launch doctor** — before Play it catches deleted jars and missing dependencies; if Fabric refuses to start it reads the error, finds the missing mod on Modrinth and installs it; out-of-memory crashes offer a bigger heap; real crashes link to the crash report.
 - **Change Minecraft version safely** — shows a preview, updates every mod to its new-version build and switches off the ones that have none.
@@ -31,6 +31,15 @@ npm start
 - **Screenshots** gallery, live **Console** with colored logs, playtime tracking, accent themes.
 
 Data lives in `%APPDATA%\LumenClient`. Offline accounts only for now.
+
+## Installer
+
+```
+npm run dist       # dist/Lumen Client Setup <version>.exe and dist/Lumen-Client-<version>-portable.exe
+npm run dist:dir   # unpacked app in dist/win-unpacked
+```
+
+The builds are not code-signed, so Windows SmartScreen asks for confirmation on first start.
 
 ## Rebuilding Lumen HUD
 ```

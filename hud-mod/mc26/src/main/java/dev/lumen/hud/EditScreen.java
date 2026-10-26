@@ -1,5 +1,6 @@
 package dev.lumen.hud;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -11,7 +12,7 @@ import java.util.Map;
 
 /** Drag elements to move, scroll to resize, right-click to hide/show. Esc saves. */
 public class EditScreen extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo"};
+    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo", "Memory", "Session", "Items", "Target", "Server", "Sprint"};
     private String dragging;
     private double offX;
     private double offY;
@@ -74,10 +75,10 @@ public class EditScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         String id = hovered(event.x(), event.y());
         if (id == null) return super.mouseClicked(event, doubleClick);
-        if (event.button() == 1) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             HudConfig.Element el = HudConfig.get().el(id);
             el.enabled = !el.enabled;
-        } else if (event.button() == 0) {
+        } else if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             HudRenderer.Rect r = HudRenderer.RECTS.get(id);
             dragging = id;
             offX = event.x() - r.x();

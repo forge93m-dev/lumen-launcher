@@ -148,6 +148,7 @@ test('hud: the launcher\'s default layout is the same as the mod\'s (HudConfig.j
   const fromJava = {};
   for (const m of java.matchAll(/case "(\w+)" -> new Element\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\);/g)) fromJava[m[1]] = { enabled: true, ax: +m[2], ay: +m[3], x: +m[4], y: +m[5] };
   for (const m of java.matchAll(/case "(\w+)" -> \{\s*Element e = new Element\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\);\s*e\.enabled = false;/g)) fromJava[m[1]] = { enabled: false, ax: +m[2], ay: +m[3], x: +m[4], y: +m[5] };
+  for (const m of java.matchAll(/case "(\w+)" -> disabled\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\);/g)) fromJava[m[1]] = { enabled: false, ax: +m[2], ay: +m[3], x: +m[4], y: +m[5] };
   const js = hud.defaults().elements;
   assert.deepEqual(Object.keys(js), ids, 'same elements in the same order');
   for (const id of ids) {

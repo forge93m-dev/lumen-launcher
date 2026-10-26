@@ -14,6 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MouseMixin {
     @Inject(method = "onMouseButton", at = @At("HEAD"))
     private void lumenhud$countClick(long window, MouseInput input, int action, CallbackInfo ci) {
-        if (action == 1 && MinecraftClient.getInstance().currentScreen == null) ClickTracker.click(input.button());
+        if (action == 1 && MinecraftClient.getInstance().currentScreen == null) ClickTracker.click(input.button(), 0, 1);
     }
 }

@@ -8,6 +8,10 @@ import org.lwjgl.glfw.GLFW;
 final class Keys {
     private Keys() {}
 
+    static KeyBinding zoomKey() {
+        return new KeyBinding("key.lumenhud.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, "category.lumenhud");
+    }
+
     static KeyBinding editKey() {
         return new KeyBinding("key.lumenhud.edit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.lumenhud");
     }

@@ -44,6 +44,15 @@ function defaults() {
     armorDurability: true,
     armorHeldItem: true,
     clock24: true,
+    memoryShowMax: true,
+    itemsTotems: true,
+    itemsGapples: true,
+    itemsPearls: true,
+    itemsCrystals: true,
+    toggleSprint: false,
+    fullbright: false,
+    zoom: true,
+    zoomFov: 30,
     elements: {
       fps: { enabled: true, ax: 0, ay: 0, x: 2, y: 2, scale: 1 },
       cps: { enabled: true, ax: 0, ay: 0, x: 2, y: 19, scale: 1 },
@@ -56,6 +65,12 @@ function defaults() {
       effects: { enabled: true, ax: 0, ay: 0, x: 2, y: 110, scale: 1 },
       reach: { enabled: false, ax: 1, ay: 0, x: 2, y: 19, scale: 1 },
       combo: { enabled: false, ax: 1, ay: 0, x: 2, y: 36, scale: 1 },
+      memory: { enabled: false, ax: 1, ay: 0, x: 2, y: 148, scale: 1 },
+      session: { enabled: false, ax: 1, ay: 0, x: 2, y: 130, scale: 1 },
+      items: { enabled: true, ax: 1, ay: 0, x: 2, y: 53, scale: 1 },
+      target: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 20, scale: 1 },
+      server: { enabled: false, ax: 0.5, ay: 0, x: 0, y: 2, scale: 1 },
+      sprint: { enabled: true, ax: 0, ay: 1, x: 2, y: 40, scale: 1 },
     },
   };
 }

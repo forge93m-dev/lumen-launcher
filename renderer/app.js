@@ -1053,12 +1053,14 @@ VIEWS.settings = (page) => {
 // Preview uses Minecraft's GUI-scaled space for 1280x720 at GUI scale 3, so offsets match in-game pixels.
 const HUD_W = 427;
 const HUD_H = 240;
-const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo' };
+const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status' };
 const HUD_OPTS = {
   coords: [['coordsFacing', 'Show facing'], ['coordsBiome', 'Show biome']],
   keystrokes: [['keystrokesCps', 'CPS under mouse buttons'], ['keystrokesSpace', 'Space bar']],
   armor: [['armorDurability', 'Durability numbers'], ['armorHeldItem', 'Held item']],
   clock: [['clock24', '24-hour format']],
+  memory: [['memoryShowMax', 'Show maximum']],
+  items: [['itemsTotems', 'Totems'], ['itemsGapples', 'Golden apples'], ['itemsPearls', 'Ender pearls'], ['itemsCrystals', 'End crystals']],
 };
 // Which versions have a Lumen HUD build is decided in core/hud.js; the page asks once at start-up.
 const hudSupports = (v) => !!S.hudInfo && S.hudInfo.matchers.some((m) => new RegExp(m).test(v));
@@ -1105,6 +1107,15 @@ function hudElementHtml(id) {
     case 'clock': return `<div class="hbox">${v(c.clock24 ? '21:45' : '9:45 PM')}</div>`;
     case 'reach': return `<div class="hbox">${v('3.12')}${a(' blocks')}</div>`;
     case 'combo': return `<div class="hbox">${v('4')}${a(' combo')}</div>`;
+    case 'memory': return `<div class="hbox">${v(c.memoryShowMax ? '1480/4096' : '1480')}${a(' MB')}</div>`;
+    case 'session': return `<div class="hbox">${v('1:12:40')}</div>`;
+    case 'server': return `<div class="hbox">${v('play.example.net')}</div>`;
+    case 'sprint': return `<div class="hbox">${a('Sprinting (toggled)')}</div>`;
+    case 'target': return `<div class="hbox">${v('Zombie')}${a('  14/20')}</div>`;
+    case 'items': {
+      const rows = [[c.itemsTotems, '#e9c46a', 2], [c.itemsGapples, '#f4a261', 5], [c.itemsPearls, '#2a9d8f', 16], [c.itemsCrystals, '#c77dff', 8]].filter((r) => r[0]);
+      return `<div class="hbox armor">${rows.map(([, col, n]) => `<div class="arow"><b style="background:${col};border-radius:3px"></b><span>${n}</span></div>`).join('') || v('Items')}</div>`;
+    }
     case 'effects': return `<div class="hbox lines"><div>${a('Speed 2')} ${v('4:12')}</div><div>${a('Night Vision')} ${v('8:00')}</div><div>${a('Regeneration')} ${v('0:23')}</div></div>`;
     case 'coords': return `<div class="hbox lines">
       <div>${a('XYZ')} ${v('-128 72 340')}</div>
@@ -1254,6 +1265,16 @@ function hudRenderPanel() {
       </div>` : ''}
     </div>
     <div class="card panel">
+      <h3>Client features</h3><p>Work in-game, no extra mods needed.</p>
+      <div class="stack">
+        <div class="opt"><span>Toggle sprint<div class="small dim">Keeps you sprinting while you hold W</div></span>${sw(c.toggleSprint, 'hud-opt', 'toggleSprint')}</div>
+        <div class="opt"><span>Fullbright<div class="small dim">Dark caves and nights are fully lit</div></span>${sw(c.fullbright, 'hud-opt', 'fullbright')}</div>
+        <div class="opt"><span>Zoom<div class="small dim">Hold C in-game to zoom in</div></span>${sw(c.zoom, 'hud-opt', 'zoom')}</div>
+        ${c.zoom ? `<div><div class="opt small"><span class="muted">Zoom field of view</span><span>${c.zoomFov}°</span></div>
+          <input type="range" id="hud-zoomfov" min="5" max="60" step="1" value="${c.zoomFov}" style="--p:${((c.zoomFov - 5) / 55) * 100}%;margin-top:6px"></div>` : ''}
+      </div>
+    </div>
+    <div class="card panel">
       <h3>Style</h3><p>Applies to every element.</p>
       <div class="stack">
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Text colour</div>
@@ -1274,6 +1295,13 @@ function hudRenderPanel() {
     sc.style.setProperty('--p', `${((sc.value - 0.5) / 2.5) * 100}%`);
     sc.parentElement.querySelector('b').textContent = `${Math.round(sc.value * 100)}%`;
     hudLayout();
+    hudSave();
+  });
+  const zf = $('#hud-zoomfov');
+  if (zf) zf.addEventListener('input', () => {
+    c.zoomFov = +zf.value;
+    zf.style.setProperty('--p', `${((zf.value - 5) / 55) * 100}%`);
+    zf.parentElement.querySelector('.opt span:last-child').textContent = `${zf.value}°`;
     hudSave();
   });
   const op = $('#hud-opacity');

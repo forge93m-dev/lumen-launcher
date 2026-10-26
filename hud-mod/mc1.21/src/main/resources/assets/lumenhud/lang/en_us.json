@@ -1,5 +1,6 @@
 {
   "key.lumenhud.edit": "Edit HUD layout",
   "category.lumenhud": "Lumen HUD",
-  "key.category.lumenhud.main": "Lumen HUD"
+  "key.category.lumenhud.main": "Lumen HUD",
+  "key.lumenhud.zoom": "Zoom (hold)"
 }

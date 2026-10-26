@@ -36,7 +36,7 @@ public class HudConfig {
         }
     }
 
-    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo"};
+    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint"};
 
     public int version = 2;
     public String textColor = "#FFFFFF";
@@ -52,6 +52,17 @@ public class HudConfig {
     public boolean armorDurability = true;
     public boolean armorHeldItem = true;
     public boolean clock24 = true;
+    public boolean memoryShowMax = true;
+    public boolean itemsTotems = true;
+    public boolean itemsGapples = true;
+    public boolean itemsPearls = true;
+    public boolean itemsCrystals = true;
+    /** Client features (not HUD elements): applied in-game, switched in the launcher. */
+    public boolean toggleSprint = false;
+    public boolean fullbright = false;
+    public boolean zoom = true;
+    /** Field of view while the zoom key (C) is held. */
+    public int zoomFov = 30;
     public Map<String, Element> elements = new LinkedHashMap<>();
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -93,10 +104,22 @@ public class HudConfig {
                 e.enabled = false;
                 yield e;
             }
+            case "memory" -> disabled(1, 0, 2, 148);
+            case "session" -> disabled(1, 0, 2, 130);
+            case "server" -> disabled(0.5, 0, 0, 2);
+            case "items" -> new Element(1, 0, 2, 53);
+            case "target" -> new Element(0.5, 0, 0, 20);
+            case "sprint" -> new Element(0, 1, 2, 40);
             case "clock" -> new Element(1, 0, 2, 2);
             case "effects" -> new Element(0, 0, 2, 110);
             default -> new Element(0, 0, 2, 2);
         };
+    }
+
+    private static Element disabled(double ax, double ay, double x, double y) {
+        Element e = new Element(ax, ay, x, y);
+        e.enabled = false;
+        return e;
     }
 
     public static void load() {

@@ -14,7 +14,7 @@ import java.util.Map;
  * generation, in compat/); this class only has the logic they call.
  */
 public abstract class EditScreenBase extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo"};
+    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo", "Memory", "Session", "Items", "Target", "Server", "Sprint"};
     private String dragging;
     private double offX;
     private double offY;

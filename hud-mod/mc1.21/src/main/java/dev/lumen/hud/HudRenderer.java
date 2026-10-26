@@ -8,6 +8,9 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Direction;
 import org.lwjgl.glfw.GLFW;
 
@@ -97,6 +100,25 @@ public final class HudRenderer {
             case "reach" -> new int[]{tr.getWidth(ReachTracker.text() + " blocks") + 8, 15};
             case "combo" -> new int[]{tr.getWidth(ComboTracker.text() + " combo") + 8, 15};
             case "clock" -> new int[]{tr.getWidth(clockText(cfg)) + 8, 15};
+            case "memory" -> new int[]{tr.getWidth(Stats.memory(cfg.memoryShowMax) + " MB") + 8, 15};
+            case "session" -> new int[]{tr.getWidth(Stats.session()) + 8, 15};
+            case "server" -> new int[]{tr.getWidth(serverText(c)) + 8, 15};
+            case "sprint" -> {
+                if (!cfg.toggleSprint && !editing) yield null;
+                yield new int[]{tr.getWidth(sprintText(c)) + 8, 15};
+            }
+            case "items" -> {
+                List<Object[]> rows = itemRows(c, cfg);
+                if (rows.isEmpty()) yield editing ? new int[]{tr.getWidth("Items") + 8, 15} : null;
+                int w = 0;
+                for (Object[] r : rows) w = Math.max(w, tr.getWidth(String.valueOf(r[1])));
+                yield new int[]{20 + w + 4, rows.size() * ROW + 2};
+            }
+            case "target" -> {
+                String[] t = target(c);
+                if (t == null) yield editing ? new int[]{tr.getWidth("Target") + 8, 15} : null;
+                yield new int[]{tr.getWidth(t[0] + (t[1].isEmpty() ? "" : "  " + t[1])) + 8, 15};
+            }
             case "effects" -> {
                 List<String[]> lines = effectLines(c);
                 if (lines.isEmpty()) yield editing ? new int[]{tr.getWidth("Effects") + 8, 15} : null;
@@ -148,6 +170,43 @@ public final class HudRenderer {
             case "clock" -> {
                 panel(ctx, cfg, w, h);
                 text(ctx, tr, cfg, clockText(cfg), 4, 4, cfg.text());
+            }
+            case "memory" -> valueBox(ctx, tr, cfg, Stats.memory(cfg.memoryShowMax), " MB", w, h);
+            case "session" -> {
+                panel(ctx, cfg, w, h);
+                text(ctx, tr, cfg, Stats.session(), 4, 4, cfg.text());
+            }
+            case "server" -> {
+                panel(ctx, cfg, w, h);
+                text(ctx, tr, cfg, serverText(c), 4, 4, cfg.text());
+            }
+            case "sprint" -> {
+                panel(ctx, cfg, w, h);
+                text(ctx, tr, cfg, sprintText(c), 4, 4, cfg.accent());
+            }
+            case "items" -> {
+                panel(ctx, cfg, w, h);
+                List<Object[]> rows = itemRows(c, cfg);
+                if (rows.isEmpty()) {
+                    text(ctx, tr, cfg, "Items", 4, 4, cfg.text());
+                    return;
+                }
+                int y = 1;
+                for (Object[] r : rows) {
+                    ctx.drawItem((ItemStack) r[0], 2, y);
+                    text(ctx, tr, cfg, String.valueOf(r[1]), 20, y + 4, cfg.text());
+                    y += ROW;
+                }
+            }
+            case "target" -> {
+                panel(ctx, cfg, w, h);
+                String[] t = target(c);
+                if (t == null) {
+                    text(ctx, tr, cfg, "Target", 4, 4, cfg.text());
+                    return;
+                }
+                text(ctx, tr, cfg, t[0], 4, 4, cfg.text());
+                if (!t[1].isEmpty()) text(ctx, tr, cfg, t[1], 4 + tr.getWidth(t[0] + "  "), 4, cfg.accent());
             }
             case "effects" -> {
                 panel(ctx, cfg, w, h);
@@ -279,6 +338,52 @@ public final class HudRenderer {
         if (key.getCategory() == InputUtil.Type.KEYSYM && code >= GLFW.GLFW_KEY_A && code <= GLFW.GLFW_KEY_Z) return String.valueOf((char) code);
         String s = k.getBoundKeyLocalizedText().getString().toUpperCase();
         return s.length() > 3 ? s.substring(0, 3) : s;
+    }
+
+    private static String serverText(MinecraftClient c) {
+        if (c.getCurrentServerEntry() != null) return c.getCurrentServerEntry().address;
+        return c.isInSingleplayer() ? "Singleplayer" : "Offline";
+    }
+
+    private static String sprintText(MinecraftClient c) {
+        return c.player != null && c.player.isSprinting() ? "Sprinting (toggled)" : "Sprint (toggled)";
+    }
+
+    /** Stack icon + count for the PvP consumables that are in the inventory (offhand included). */
+    private static List<Object[]> itemRows(MinecraftClient c, HudConfig cfg) {
+        List<Object[]> out = new ArrayList<>();
+        if (c.player == null) return out;
+        var inv = c.player.getInventory();
+        add(out, inv, net.minecraft.item.Items.TOTEM_OF_UNDYING, cfg.itemsTotems);
+        add(out, inv, net.minecraft.item.Items.GOLDEN_APPLE, cfg.itemsGapples);
+        add(out, inv, net.minecraft.item.Items.ENDER_PEARL, cfg.itemsPearls);
+        add(out, inv, net.minecraft.item.Items.END_CRYSTAL, cfg.itemsCrystals);
+        return out;
+    }
+
+    private static void add(List<Object[]> out, net.minecraft.entity.player.PlayerInventory inv, net.minecraft.item.Item item, boolean on) {
+        if (!on) return;
+        int n = 0;
+        for (int i = 0; i < inv.size(); i++) {
+            ItemStack st = inv.getStack(i);
+            if (st.isOf(item)) n += st.getCount();
+        }
+        if (n > 0) out.add(new Object[]{new ItemStack(item), n});
+    }
+
+    /** What the crosshair points at: {name, detail} (health for living things), or null. */
+    private static String[] target(MinecraftClient c) {
+        HitResult hit = c.crosshairTarget;
+        if (hit == null || c.world == null) return null;
+        if (hit instanceof EntityHitResult e) {
+            var en = e.getEntity();
+            String hp = en instanceof net.minecraft.entity.LivingEntity l ? Stats.health(l.getHealth(), l.getMaxHealth()) : "";
+            return new String[]{en.getName().getString(), hp};
+        }
+        if (hit instanceof BlockHitResult b && hit.getType() == HitResult.Type.BLOCK) {
+            return new String[]{c.world.getBlockState(b.getBlockPos()).getBlock().getName().getString(), ""};
+        }
+        return null;
     }
 
     private static String clockText(HudConfig cfg) {

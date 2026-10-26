@@ -9,8 +9,18 @@ import org.lwjgl.glfw.GLFW;
 final class Keys {
     private Keys() {}
 
+    private static KeyBinding.Category category;
+
+    static KeyBinding zoomKey() {
+        return new KeyBinding("key.lumenhud.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, category());
+    }
+
+    private static KeyBinding.Category category() {
+        if (category == null) category = KeyBinding.Category.create(Identifier.of("lumenhud", "main"));
+        return category;
+    }
+
     static KeyBinding editKey() {
-        KeyBinding.Category category = KeyBinding.Category.create(Identifier.of("lumenhud", "main"));
-        return new KeyBinding("key.lumenhud.edit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category);
+        return new KeyBinding("key.lumenhud.edit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category());
     }
 }

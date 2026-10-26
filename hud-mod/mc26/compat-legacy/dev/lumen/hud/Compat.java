@@ -1,6 +1,7 @@
 package dev.lumen.hud;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 
@@ -22,5 +23,37 @@ public final class Compat {
 
     public static RenderTarget mainTarget(Minecraft c) {
         return c.getMainRenderTarget();
+    }
+
+    /** Dev self-test: feeds mouse events into the game's own mouse handler. */
+    public static DragProbe.Sink mouseSink(Minecraft c) {
+        long win = c.getWindow().handle();
+        return new DragProbe.Sink() {
+            private double lx;
+            private double ly;
+
+            public void move(double x, double y) {
+                try {
+                    var m = net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove", long.class, double.class, double.class);
+                    m.setAccessible(true);
+                    m.invoke(c.mouseHandler, win, x, y);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+                lx = x;
+                ly = y;
+            }
+
+            public void button(int b, boolean pressed) {
+                var info = new net.minecraft.client.input.MouseButtonInfo(b == 0 ? InputConstants.MOUSE_BUTTON_LEFT : b, 0);
+                try {
+                    var m = net.minecraft.client.MouseHandler.class.getDeclaredMethod("onButton", long.class, net.minecraft.client.input.MouseButtonInfo.class, int.class);
+                    m.setAccessible(true);
+                    m.invoke(c.mouseHandler, win, info, pressed ? 1 : 0);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        };
     }
 }
