@@ -31,16 +31,18 @@ docker run -d --restart unless-stopped -p 8787:8787 -v lumen-skins:/data lumen-s
 ## On Cloudflare (free, no server of your own)
 
 `server/cloudflare/` is the same service as a Cloudflare Worker with Workers KV for storage. The free plan is plenty for
-a group of friends. You need a free Cloudflare account; nothing is installed on your computer except what `npx` fetches.
+a group of friends. You need a free Cloudflare account. From the repository root:
 
 ```
-cd server/cloudflare
-npx wrangler login                          # opens the browser once
-npx wrangler kv namespace create SKINS      # prints an id: paste it into wrangler.toml (replace REPLACE_WITH_THE_ID...)
-npx wrangler deploy                         # prints https://lumen-skins.<your-name>.workers.dev
+npm run deploy-skins     # logs in (browser, once), creates the storage, uploads the Worker, remembers its address
+npm run dist             # makes an installer that already knows the address
 ```
 
-Give that address to every player: **Settings → Lumen skin service** in the launcher, then *Check*.
+That is all: the address is built into the launcher (`core/service.json`), so your players install it and their skins
+and capes are shared without typing anything. (Settings → Lumen skin service still lets someone use a different service.)
+
+By hand, if you prefer: `cd server/cloudflare`, `npx wrangler login`, `npx wrangler kv namespace create SKINS` (paste the
+id into `wrangler.toml`), `npx wrangler deploy`, then put the printed address into `core/service.json`.
 
 Free plan limits to keep in mind: about 1000 KV writes a day (an upload is up to three writes, so a few hundred skin
 changes a day) and 100 000 reads. Changes can take up to a minute to show up in other regions (KV is eventually

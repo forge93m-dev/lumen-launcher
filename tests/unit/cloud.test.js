@@ -79,3 +79,40 @@ test('a dead service is reported, not thrown, by pushQuietly and check says why'
   assert.ok(r.error);
   await assert.rejects(cloud.check(), /Could not reach/);
 });
+
+test('the built-in address is used when none was typed, and a typed one wins', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lumen-cloud2-'));
+  const server = createService({ data: dir, writesPerMin: 1000 });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const built = `http://127.0.0.1:${server.address().port}`;
+  const before = process.env.LUMEN_SKIN_SERVICE;
+  try {
+    cloud.set({ url: '', share: true, others: true });
+    process.env.LUMEN_SKIN_SERVICE = '';
+    assert.equal(cloud.view().active, '', 'a build without a service has nothing to talk to');
+    assert.equal(await cloud.push(), false);
+    process.env.LUMEN_SKIN_SERVICE = built;
+    const v = cloud.view();
+    assert.equal(v.builtIn, built);
+    assert.equal(v.active, built);
+    assert.equal(v.url, '', 'nothing was typed, the field stays empty');
+    assert.equal((await cloud.check()).ok, true, 'check() asks the built-in service');
+    assert.equal(await cloud.push(), true, 'the skin goes to the built-in service without any setup');
+    cloud.set({ url: 'http://127.0.0.1:9' });
+    assert.equal(cloud.view().active, 'http://127.0.0.1:9', 'a typed address wins');
+    cloud.set({ url: '' });
+  } finally {
+    if (before === undefined) delete process.env.LUMEN_SKIN_SERVICE; else process.env.LUMEN_SKIN_SERVICE = before;
+    server.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('deploy script: it can read the ids and addresses wrangler prints', () => {
+  const { parseNamespaceId, parseWorkerUrl } = require('../../scripts/deploy-skin-service');
+  assert.equal(parseNamespaceId('Add the following to your configuration file:\n[[kv_namespaces]]\nbinding = "SKINS"\nid = "0123456789abcdef0123456789abcdef"\n'), '0123456789abcdef0123456789abcdef');
+  assert.equal(parseNamespaceId('{ "id": "abcdefabcdefabcdefabcdefabcdefab" }'), 'abcdefabcdefabcdefabcdefabcdefab');
+  assert.equal(parseNamespaceId('nothing here'), null);
+  assert.equal(parseWorkerUrl('Uploaded lumen-skins (1.2 sec)\nDeployed lumen-skins triggers\n  https://lumen-skins.pilot-7.workers.dev\nCurrent Version ID: x'), 'https://lumen-skins.pilot-7.workers.dev');
+  assert.equal(parseWorkerUrl('no url'), null);
+});

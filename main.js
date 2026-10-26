@@ -187,7 +187,7 @@ handle('skins:update', (id, patch) => { skins.update(id, patch); return skinChan
 handle('cloud:get', () => cloud.view());
 handle('cloud:set', async (patch) => {
   const v = cloud.set(patch);
-  if (v.url) await cloud.pushQuietly();
+  if (v.active) await cloud.pushQuietly();
   return v;
 });
 handle('cloud:check', (url) => cloud.check(url));

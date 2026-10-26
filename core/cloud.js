@@ -12,6 +12,21 @@ const { fetchRetry } = require('./net');
 
 const DEFAULTS = { url: '', share: true, others: true, token: '' };
 
+// The Lumen service this build of the launcher talks to out of the box (core/service.json, written by
+// `npm run deploy-skins`). LUMEN_SKIN_SERVICE overrides it (development, tests). Empty means this build has none.
+function defaultUrl() {
+  const env = process.env.LUMEN_SKIN_SERVICE;
+  if (env !== undefined) return env ? cleanUrl(env) : '';
+  try {
+    return cleanUrl(JSON.parse(fs.readFileSync(path.join(__dirname, 'service.json'), 'utf8')).skinService);
+  } catch {
+    return '';
+  }
+}
+
+// The address in use: the one the player typed under "advanced", else the built-in one.
+const effectiveUrl = (c) => c.url || defaultUrl();
+
 // Only http(s) addresses; a trailing slash is dropped. An empty string means "not set up".
 function cleanUrl(u) {
   const s = String(u || '').trim();
@@ -40,8 +55,8 @@ const accountName = () => {
 
 // What the UI shows: never the token.
 function view() {
-  const { url, share, others } = get();
-  return { url, share, others, name: accountName() };
+  const c = get();
+  return { url: c.url, builtIn: defaultUrl(), active: effectiveUrl(c), share: c.share, others: c.others, name: accountName() };
 }
 
 function set(patch) {
@@ -60,8 +75,9 @@ function sync(instId) {
   if (!inst.content['lumen-hud']) return;
   const c = get();
   const file = path.join(instances.dirOf(instId), 'config', 'lumen-cloud.json');
-  if (!c.url && !fs.existsSync(file)) return;
-  writeFileAtomic(file, JSON.stringify({ enabled: !!c.url && c.others, url: c.url }));
+  const url = effectiveUrl(c);
+  if (!url && !fs.existsSync(file)) return;
+  writeFileAtomic(file, JSON.stringify({ enabled: !!url && c.others, url }));
 }
 
 function syncAll() {
@@ -71,7 +87,7 @@ function syncAll() {
 }
 
 async function request(c, method, route, body) {
-  const r = await fetchRetry(`${c.url}${route}`, {
+  const r = await fetchRetry(`${effectiveUrl(c)}${route}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -81,7 +97,7 @@ async function request(c, method, route, body) {
 
 // Is there a Lumen skin service at this address?
 async function check(url) {
-  const base = cleanUrl(url === undefined ? get().url : url);
+  const base = cleanUrl(url === undefined ? effectiveUrl(get()) : url);
   if (!base) throw new Error('Enter the service address first');
   let r;
   try {
@@ -97,7 +113,7 @@ async function check(url) {
 async function push() {
   const c = get();
   const name = accountName();
-  if (!c.url || !c.share || !name || !/^[A-Za-z0-9_]{3,16}$/.test(name)) return false;
+  if (!effectiveUrl(c) || !c.share || !name || !/^[A-Za-z0-9_]{3,16}$/.test(name)) return false;
   const skin = skins.activeSkin();
   const cape = skins.capeBytes();
   await request(c, 'PUT', `/v1/profile/${name}`, {
@@ -114,4 +130,4 @@ async function pushQuietly() {
   try { return { ok: await push() }; } catch (e) { return { ok: false, error: e.message }; }
 }
 
-module.exports = { get, view, set, sync, syncAll, check, push, pushQuietly, cleanUrl };
+module.exports = { get, view, set, sync, syncAll, check, push, pushQuietly, cleanUrl, defaultUrl };

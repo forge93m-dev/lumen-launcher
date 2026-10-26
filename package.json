@@ -14,7 +14,8 @@
     "test:all": "npm test && npm run test:ui",
     "dist": "electron-builder --win --x64",
     "dist:dir": "electron-builder --win --x64 --dir",
-    "skin-service": "node server/skin-service.js"
+    "skin-service": "node server/skin-service.js",
+    "deploy-skins": "node scripts/deploy-skin-service.js"
   },
   "license": "MIT",
   "dependencies": {

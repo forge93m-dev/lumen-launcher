@@ -1059,7 +1059,7 @@ function logHtml() {
 }
 
 VIEWS.settings = async (page) => {
-  const cl = await api.call('cloud:get').catch(() => ({ url: '', share: true, others: true, name: null }));
+  const cl = await api.call('cloud:get').catch(() => ({ url: '', builtIn: '', active: '', share: true, others: true, name: null }));
   if (S.view !== 'settings') return;
   const st = S.cfg.settings;
   const maxRam = Math.max(2048, Math.min(32768, Math.floor((S.sys.totalMem - 1536) / 512) * 512));
@@ -1081,11 +1081,11 @@ VIEWS.settings = async (page) => {
       </div>
 
       <div class="card panel">
-        <h3>Lumen skin service</h3><p>Lets Lumen players see each other's skins and capes. Without an address, only you see yours.</p>
+        <h3>Lumen skin service</h3><p>${cl.builtIn ? "Skins and capes of Lumen players are shared automatically, nothing to set up." : "This build has no skin service of its own. Enter the address of one below to share skins and capes."}</p>
         <div class="stack">
-          <div class="row"><input class="input grow" id="cloud-url" value="${esc(cl.url)}" placeholder="https://skins.example.com" spellcheck="false"><button class="btn" data-act="cloud-check">Check</button></div>
-          <div class="small" id="cloud-status"></div>
-          <div class="opt"><div><div class="k">See other players' skins and capes</div><div class="d">The game asks the service for the players around you.</div></div><button class="switch ${cl.others ? 'on' : ''}" data-act="cloud-toggle" data-k="others"></button></div>
+          <div class="row"><input class="input grow" id="cloud-url" value="${esc(cl.url)}" placeholder="${cl.builtIn ? 'Built-in service (change only to use your own)' : 'https://skins.example.com'}" spellcheck="false"><button class="btn" data-act="cloud-check">Check</button></div>
+          <div class="small ${cl.active ? 'muted' : ''}" id="cloud-status">${cl.active ? (cl.url ? 'Using your own service.' : 'Using the built-in service.') : 'Not connected.'}</div>
+        <div class="opt"><div><div class="k">See other players' skins and capes</div><div class="d">The game asks the service for the players around you.</div></div><button class="switch ${cl.others ? 'on' : ''}" data-act="cloud-toggle" data-k="others"></button></div>
           <div class="opt"><div><div class="k">Share my skin and cape</div><div class="d">${cl.name ? `Uploaded as <b data-nt>${esc(cl.name)}</b>` : 'Add an account first.'}</div></div><button class="switch ${cl.share ? 'on' : ''}" data-act="cloud-toggle" data-k="share"></button></div>
         </div>
       </div>
@@ -1132,7 +1132,7 @@ VIEWS.settings = async (page) => {
     try {
       await api.call('cloud:set', { url: cloudUrl.value });
       st.className = 'small muted';
-      st.textContent = cloudUrl.value.trim() ? 'Saved. Press Check to test the connection.' : 'The service is off.';
+      st.textContent = cloudUrl.value.trim() ? 'Saved. Press Check to test the connection.' : 'Using the built-in service.';
     } catch (e) { st.className = 'small'; st.style.color = 'var(--danger, #ef4444)'; st.textContent = e.message; }
   });
   // The language applies to the whole interface, so the window simply reloads in the new language.
