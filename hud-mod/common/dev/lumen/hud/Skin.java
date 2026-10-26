@@ -13,8 +13,13 @@ public final class Skin {
     public final int hover;
     public final int off;
     public final int track;
+    /** Module cards and their hover colour. */
+    public final int card;
+    public final int cardHover;
 
     private Skin(int panel, int edge, int text, int dim, int hover, int off, int track) {
+        this.card = Look.mix(panel, hover == 0x18000000 ? 0xFF000000 : 0xFFFFFFFF, hover == 0x18000000 ? 0.05 : 0.07);
+        this.cardHover = Look.mix(panel, hover == 0x18000000 ? 0xFF000000 : 0xFFFFFFFF, hover == 0x18000000 ? 0.10 : 0.13);
         this.panel = panel;
         this.edge = edge;
         this.text = text;

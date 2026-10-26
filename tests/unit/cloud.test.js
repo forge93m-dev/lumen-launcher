@@ -5,6 +5,8 @@ const os = require('os');
 const path = require('path');
 const { sandbox } = require('../helpers');
 sandbox();
+// Tests never talk to the real Lumen service the build points at.
+process.env.LUMEN_SKIN_SERVICE = '';
 const store = require('../../core/store');
 const instances = require('../../core/instances');
 const png = require('../../core/png');

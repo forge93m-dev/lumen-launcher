@@ -55,7 +55,14 @@ function createWindow() {
   };
   for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) win.on(ev, saveBounds);
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  // LUMEN_NO_WINDOW=1 (the UI tests): the launcher runs and can be driven, but never appears on screen or takes focus.
+  // It is shown far off screen without taking focus, because a hidden page stops running its animations.
+  if (process.env.LUMEN_NO_WINDOW) {
+    win.setPosition(-32000, -32000);
+    win.once('ready-to-show', () => win.showInactive());
+  } else {
+    win.once('ready-to-show', () => win.show());
+  }
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\//.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -297,7 +304,7 @@ handle('game:launch', async (instId, server) => {
           if (report) send('game:crash', { instId, ...report });
         }
         send('game:state', { state: 'idle', instId, code });
-        if (win && !win.isDestroyed() && !win.isVisible()) win.show();
+        if (win && !win.isDestroyed() && !win.isVisible() && !process.env.LUMEN_NO_WINDOW) win.show();
       },
     });
     running.proc = proc;

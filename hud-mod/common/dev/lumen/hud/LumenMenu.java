@@ -2,6 +2,7 @@ package dev.lumen.hud;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
@@ -11,7 +12,8 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
- * The in-game Lumen menu: a list of modules on the left, the selected module's settings on the right.
+ * The in-game Lumen menu: module cards with switches, a page for style, one for cosmetics and one for settings, and a
+ * dock of page icons under the window.
  * All drawing goes through {@link Gfx} and input arrives as plain numbers, so one copy serves every Minecraft version.
  */
 public final class LumenMenu {
@@ -105,6 +107,7 @@ public final class LumenMenu {
         final BooleanSupplier on; // null: no switch
         final Consumer<Boolean> setOn;
         final List<Setting> settings = new ArrayList<>();
+        String icon = "grid";
 
         Module(String group, String name, String desc, BooleanSupplier on, Consumer<Boolean> setOn) {
             this.group = group;
@@ -118,6 +121,11 @@ public final class LumenMenu {
             settings.add(s);
             return this;
         }
+
+        Module icon(String name) {
+            icon = name;
+            return this;
+        }
     }
 
     private static final String[] PALETTE = {"#FFFFFF", "#8B5CF6", "#3B82F6", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#EC4899"};
@@ -126,9 +134,16 @@ public final class LumenMenu {
         return HudConfig.get().el(id);
     }
 
+    private static final Map<String, String> ELEMENT_ICONS = Map.ofEntries(
+            Map.entry("fps", "bolt"), Map.entry("cps", "cursor"), Map.entry("ping", "signal"), Map.entry("coords", "pin"),
+            Map.entry("keystrokes", "keys"), Map.entry("armor", "shield"), Map.entry("effects", "flask"), Map.entry("items", "bag"),
+            Map.entry("target", "target"), Map.entry("alert", "warn"), Map.entry("death", "skull"), Map.entry("reach", "ruler"),
+            Map.entry("combo", "flame"), Map.entry("speed", "arrow"), Map.entry("clock", "clock"), Map.entry("session", "hourglass"),
+            Map.entry("memory", "chip"), Map.entry("server", "server"), Map.entry("sprint", "boot"), Map.entry("compass", "compass"));
+
     private static Module element(String id, String desc) {
         String name = HudConfig.NAMES[java.util.Arrays.asList(HudConfig.IDS).indexOf(id)];
-        Module m = new Module("OVERLAY", name, desc, () -> el(id).enabled, v -> el(id).enabled = v);
+        Module m = new Module("OVERLAY", name, desc, () -> el(id).enabled, v -> el(id).enabled = v).icon(ELEMENT_ICONS.getOrDefault(id, "grid"));
         m.with(Setting.slider("Size", 0.5, 3, 0.1, "%", () -> el(id).scale, v -> el(id).scale = v).asPercent());
         return m;
     }
@@ -170,11 +185,11 @@ public final class LumenMenu {
         out.add(element("server", "Address of the server you are on."));
         out.add(element("sprint", "Shows when toggle sprint is active."));
 
-        out.add(new Module("CLIENT", "Toggle sprint", "Keeps you sprinting while you hold W.", () -> HudConfig.get().toggleSprint, v -> HudConfig.get().toggleSprint = v));
-        out.add(new Module("CLIENT", "Toggle sneak", "Press the sneak key once to sneak, again to stop.", () -> HudConfig.get().toggleSneak, v -> HudConfig.get().toggleSneak = v));
-        out.add(new Module("CLIENT", "Freelook", "Hold Left Alt and look around without turning your player.", () -> HudConfig.get().freelook, v -> HudConfig.get().freelook = v));
-        out.add(new Module("CLIENT", "Fullbright", "Caves and nights are fully lit.", () -> HudConfig.get().fullbright, v -> HudConfig.get().fullbright = v));
-        out.add(new Module("CLIENT", "Zoom", "Hold C to zoom in.", () -> HudConfig.get().zoom, v -> HudConfig.get().zoom = v)
+        out.add(new Module("CLIENT", "Toggle sprint", "Keeps you sprinting while you hold W.", () -> HudConfig.get().toggleSprint, v -> HudConfig.get().toggleSprint = v).icon("boot"));
+        out.add(new Module("CLIENT", "Toggle sneak", "Press the sneak key once to sneak, again to stop.", () -> HudConfig.get().toggleSneak, v -> HudConfig.get().toggleSneak = v).icon("sneak"));
+        out.add(new Module("CLIENT", "Freelook", "Hold Left Alt and look around without turning your player.", () -> HudConfig.get().freelook, v -> HudConfig.get().freelook = v).icon("eye"));
+        out.add(new Module("CLIENT", "Fullbright", "Caves and nights are fully lit.", () -> HudConfig.get().fullbright, v -> HudConfig.get().fullbright = v).icon("sun"));
+        out.add(new Module("CLIENT", "Zoom", "Hold C to zoom in.", () -> HudConfig.get().zoom, v -> HudConfig.get().zoom = v).icon("zoom")
                 .with(Setting.slider("Field of view", 5, 60, 1, "°", () -> HudConfig.get().zoomFov, v -> HudConfig.get().zoomFov = (int) v))
                 .with(Setting.sw("Smooth zoom", () -> HudConfig.get().smoothZoom, v -> HudConfig.get().smoothZoom = v)));
 
@@ -189,15 +204,19 @@ public final class LumenMenu {
                 .with(Setting.swatches("Accent colour", PALETTE, () -> HudConfig.get().accentColor, v -> HudConfig.get().accentColor = v))
                 .with(Setting.sw("Background", () -> HudConfig.get().background, v -> HudConfig.get().background = v))
                 .with(Setting.slider("Background opacity", 0, 1, 0.05, "%", () -> HudConfig.get().bgOpacity, v -> HudConfig.get().bgOpacity = v).asPercent())
-                .with(Setting.sw("Text shadow", () -> HudConfig.get().shadow, v -> HudConfig.get().shadow = v))
-                .with(Setting.sw("Hide when F3 is open", () -> HudConfig.get().hideInDebug, v -> HudConfig.get().hideInDebug = v)));
+                .with(Setting.sw("Text shadow", () -> HudConfig.get().shadow, v -> HudConfig.get().shadow = v)));
         return out;
     }
 
     // ---------------- state ----------------
 
+    private static final String[] PAGE_TITLES = {"Modules", "Style", "Cosmetics", "Settings"};
+    private static final String[] PAGE_ICONS = {"grid", "palette", "hanger", "gear"};
+    private static final int[] TINTS = {0xFF8B5CF6, 0xFF06B6D4, 0xFFF59E0B, 0xFF10B981, 0xFFEC4899, 0xFF3B82F6};
+
     private final List<Module> modules = build();
-    private int selected;
+    private int page;
+    private Module detail;
     private double scroll;
     private double maxScroll;
     private Setting dragging;
@@ -206,18 +225,58 @@ public final class LumenMenu {
     /** Set when the player clicked "Edit layout"; the screen reads and clears it. */
     public boolean wantsLayout;
 
-    private record Hit(int x, int y, int w, int h, Runnable action, Setting slider, boolean inList) {
-        Hit(int x, int y, int w, int h, Runnable action, Setting slider) {
-            this(x, y, w, h, action, slider, false);
-        }
-
+    private record Hit(int x, int y, int w, int h, Runnable action, Setting slider, boolean inContent) {
         boolean at(double mx, double my) {
             return mx >= x && my >= y && mx < x + w && my < y + h;
         }
     }
 
     private final List<Hit> hits = new ArrayList<>();
-    private int px, py, pw, ph, listX, listY, listW, listH;
+    private boolean inContent;
+    private int px, py, pw, ph, contentTop, contentBottom;
+    private int dockX, dockY, dockW, dockH;
+
+    private void addHit(int x, int y, int w, int h, Runnable action, Setting slider) {
+        hits.add(new Hit(x, y, w, h, action, slider, inContent));
+    }
+
+    /** For the dev preview and tests: jump to a page, optionally straight into one module. */
+    void show(int newPage, String moduleName) {
+        page = newPage;
+        detail = null;
+        scroll = 0;
+        if (moduleName != null) for (Module m : modules) if (m.name.equals(moduleName)) detail = m;
+    }
+
+    // helpers for the dev preview and tests
+    String pageName() {
+        return PAGE_TITLES[page];
+    }
+
+    boolean inDetail() {
+        return detail != null;
+    }
+
+    int[] dockSlot(int i) {
+        return new int[]{dockX + 5 + i * 34 + 17, dockY + dockH / 2};
+    }
+
+    /** Centre of the first module switch on screen, from the hits of the last render. */
+    int[] firstCardToggle() {
+        for (Hit h : hits) if (h.inContent && h.h < 30 && h.w > 25 && h.w < 40) return new int[]{h.x + h.w / 2, h.y + h.h / 2};
+        throw new IllegalStateException("no card switch");
+    }
+
+    int[] firstCardBody() {
+        for (Hit h : hits) if (h.inContent && h.h >= 40 && h.w > 60) return new int[]{h.x + h.w / 2, h.y + 10};
+        throw new IllegalStateException("no card");
+    }
+
+    private void goTo(int newPage) {
+        page = newPage;
+        detail = null;
+        scroll = 0;
+    }
 
     // ---------------- drawing ----------------
 
@@ -225,93 +284,243 @@ public final class LumenMenu {
 
     public void render(Gfx g, int sw, int sh, int mx, int my) {
         hits.clear();
+        inContent = false;
         skin = Skin.current();
-        final int PANEL = skin.panel, EDGE = skin.edge, DIM = skin.dim, TEXT = skin.text;
+        final int EDGE = skin.edge, DIM = skin.dim, TEXT = skin.text;
         HudConfig cfg = HudConfig.get();
         int accent = cfg.accent();
-        pw = Math.min(sw - 16, 500);
-        ph = Math.min(sh - 16, 276);
+        int gap = 6;
+        dockH = 28;
+        pw = Math.min(sw - 16, 470);
+        ph = Math.min(sh - 16 - dockH - gap, 250);
         px = (sw - pw) / 2;
-        py = (sh - ph) / 2;
-        Look.outline(g, px, py, pw, ph, 5, EDGE, PANEL);
+        py = (sh - (ph + gap + dockH)) / 2;
+        Look.outline(g, px, py, pw, ph, 6, EDGE, skin.panel);
 
-        // header
-        g.fill(px + 8, py + 8, px + 11, py + 22, accent);
-        g.text("Lumen", px + 16, py + 8, TEXT, true);
-        g.text("Client", px + 16 + g.width("Lumen "), py + 8, DIM, false);
-        g.text("Esc to close", px + 16, py + 18, DIM, false);
+        // header: what this is, where you are, and the way into the layout editor
+        g.fill(px + 8, py + 7, px + 10, py + 21, accent);
+        g.text("Lumen", px + 15, py + 10, TEXT, true);
+        int tx = px + 15 + g.width("Lumen ") + 4;
+        g.text(PAGE_TITLES[page], tx, py + 10, DIM, false);
         String edit = "Edit layout";
         int bw = g.width(edit) + 14;
-        int bx = px + pw - bw - 10;
-        boolean hot = new Hit(bx, py + 8, bw, 16, null, null).at(mx, my);
-        Look.round(g, bx, py + 8, bw, 16, 4, hot ? Look.withAlpha(accent, 0xFF) : Look.withAlpha(accent, 0x90));
-        g.text(edit, bx + 7, py + 12, 0xFFFFFFFF, false);
-        hits.add(new Hit(bx, py + 8, bw, 16, () -> wantsLayout = true, null));
-        g.fill(px + 8, py + 30, px + pw - 8, py + 31, EDGE);
+        int bx = px + pw - bw - 8;
+        boolean hot = mx >= bx && mx < bx + bw && my >= py + 6 && my < py + 22;
+        Look.round(g, bx, py + 6, bw, 16, 4, hot ? Look.withAlpha(accent, 0xFF) : Look.withAlpha(accent, 0x90));
+        g.text(edit, bx + 7, py + 10, 0xFFFFFFFF, false);
+        addHit(bx, py + 6, bw, 16, () -> wantsLayout = true, null);
+        g.fill(px + 8, py + 27, px + pw - 8, py + 28, EDGE);
 
-        // module list
-        listX = px + 8;
-        listY = py + 36;
-        listW = (int) (pw * 0.5) - 8;
-        listH = ph - 36 - 8;
-        g.clip(listX, listY, listX + listW, listY + listH);
-        int y = listY - (int) scroll;
-        String group = "";
-        int total = 0;
-        for (int i = 0; i < modules.size(); i++) {
-            Module m = modules.get(i);
-            if (!m.group.equals(group)) {
-                group = m.group;
-                g.text(group, listX + 2, y + 3, DIM, false);
-                y += 14;
-                total += 14;
-            }
-            boolean sel = i == selected;
-            boolean over = mx >= listX && mx < listX + listW && my >= y && my < y + 20 && my >= listY && my < listY + listH;
-            if (sel) Look.round(g, listX, y, listW - 4, 20, 4, Look.withAlpha(accent, 0x38));
-            else if (over) Look.round(g, listX, y, listW - 4, 20, 4, skin.hover);
-            g.text(m.name, listX + 8, y + 6, m.on != null && !m.on.getAsBoolean() ? DIM : TEXT, false);
-            if (m.on != null) switchAt(g, listX + listW - 4 - 26, y + 5, m.on.getAsBoolean(), accent, skin.off);
-            final int idx = i;
-            final Module mod = m;
-            if (y + 20 > listY && y < listY + listH) {
-                if (m.on != null) hits.add(new Hit(listX + listW - 4 - 30, y, 26, 20, () -> {
-                    mod.setOn.accept(!mod.on.getAsBoolean());
-                    selected = idx;
-                }, null, true));
-                hits.add(new Hit(listX, y, listW - 4, 20, () -> selected = idx, null, true));
-            }
-            y += 20;
-            total += 20;
-        }
+        // content
+        int cx = px + 10;
+        int cw = pw - 20;
+        contentTop = py + 32;
+        contentBottom = py + ph - 6;
+        g.clip(px + 4, contentTop, px + pw - 4, contentBottom);
+        inContent = true;
+        int shown = switch (page) {
+            case 1 -> stylePage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
+            case 2 -> cosmeticsPage(g, cx, contentTop - (int) scroll, cw);
+            case 3 -> settingsPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
+            default -> detail != null ? detailPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my) : modulesPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
+        };
+        inContent = false;
         g.unclip();
-        maxScroll = Math.max(0, total - listH);
+        int viewH = contentBottom - contentTop;
+        maxScroll = Math.max(0, shown - viewH);
         scroll = Math.max(0, Math.min(maxScroll, scroll));
         if (maxScroll > 0) { // scroll bar
-            int th = Math.max(16, (int) (listH * (listH / (double) total)));
-            int ty = listY + (int) ((listH - th) * (scroll / maxScroll));
-            Look.round(g, listX + listW - 2, ty, 2, th, 1, skin.track);
+            int th = Math.max(16, (int) (viewH * (viewH / (double) shown)));
+            int ty = contentTop + (int) ((viewH - th) * (scroll / maxScroll));
+            Look.round(g, px + pw - 7, ty, 2, th, 1, skin.track);
         }
 
-        // detail
-        g.fill(px + pw / 2, py + 36, px + pw / 2 + 1, py + ph - 8, EDGE);
-        if (selected >= modules.size()) selected = 0;
-        Module m = modules.get(selected);
-        int dx = px + pw / 2 + 10;
-        int dw = pw / 2 - 18;
-        int dy = py + 38;
-        g.text(m.name, dx, dy, accent, true);
-        dy += 12;
-        for (String line : wrap(g, m.desc, dw)) {
-            g.text(line, dx, dy, DIM, false);
+        dock(g, sw, accent, mx, my);
+    }
+
+    /** The row of page icons under the window. */
+    private void dock(Gfx g, int sw, int accent, int mx, int my) {
+        int slot = 34;
+        dockW = slot * PAGE_ICONS.length + 10;
+        dockX = (sw - dockW) / 2;
+        dockY = py + ph + 6;
+        Look.outline(g, dockX, dockY, dockW, dockH, dockH / 2, skin.edge, skin.panel);
+        for (int i = 0; i < PAGE_ICONS.length; i++) {
+            int x = dockX + 5 + i * slot;
+            boolean over = mx >= x && mx < x + slot && my >= dockY && my < dockY + dockH;
+            if (over && i != page) Look.round(g, x + 3, dockY + 3, slot - 6, dockH - 6, 10, skin.hover);
+            Icons.draw(g, PAGE_ICONS[i], x + (slot - 16) / 2, dockY + (dockH - 16) / 2, i == page ? accent : over ? skin.text : skin.dim, 2);
+            final int target = i;
+            hits.add(new Hit(x, dockY, slot, dockH, () -> goTo(target), null, false));
+        }
+    }
+
+    /** Overlay and client modules as cards. Returns the height used. */
+    private int modulesPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
+        int cols = cw >= 330 ? 3 : 2;
+        int gap = 6;
+        int w = (cw - gap * (cols - 1)) / cols;
+        int h = 50;
+        int cy = y;
+        String group = "";
+        int col = 0;
+        for (int i = 0; i < modules.size(); i++) {
+            Module m = modules.get(i);
+            if (m.group.equals("STYLE")) continue; // those live on the Style page
+            if (!m.group.equals(group)) {
+                if (col != 0) cy += h + gap;
+                col = 0;
+                group = m.group;
+                g.text(group.charAt(0) + group.substring(1).toLowerCase(java.util.Locale.ROOT), x + 2, cy + 1, skin.dim, false);
+                cy += 14;
+            }
+            int cx = x + col * (w + gap);
+            card(g, m, TINTS[i % TINTS.length], cx, cy, w, h, accent, mx, my);
+            col++;
+            if (col == cols) {
+                col = 0;
+                cy += h + gap;
+            }
+        }
+        if (col != 0) cy += h + gap;
+        return cy - y + 2;
+    }
+
+    private void card(Gfx g, Module m, int tint, int x, int y, int w, int h, int accent, int mx, int my) {
+        boolean over = mx >= x && mx < x + w && my >= y && my < y + h && my >= contentTop && my < contentBottom;
+        Look.round(g, x, y, w, h, 6, over ? skin.cardHover : skin.card);
+        Look.round(g, x + 6, y + 6, 16, 16, 4, Look.withAlpha(tint, 0x44));
+        Icons.draw(g, m.icon, x + 10, y + 10, tint, 1);
+        if (!m.settings.isEmpty()) Icons.draw(g, "gear", x + w - 14, y + 6, skin.dim, 1);
+        boolean on = m.on == null || m.on.getAsBoolean();
+        g.text(m.name, x + 7, y + 26, on ? skin.text : skin.dim, false);
+        if (m.on != null) switchAt(g, x + 6, y + 37, on, accent, skin.off);
+        addHit(x, y, w, h, () -> detail = m, null);
+        if (m.on != null) addHit(x, y + 33, 34, h - 33, () -> m.setOn.accept(!m.on.getAsBoolean()), null);
+    }
+
+    /** One module: what it is, its switch and its settings. */
+    private int detailPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
+        Module m = detail;
+        int back = g.width("Back") + 24;
+        boolean over = mx >= x && mx < x + back && my >= y && my < y + 14;
+        Look.round(g, x, y, back, 14, 6, over ? skin.cardHover : skin.card);
+        Icons.draw(g, "back", x + 5, y + 3, skin.dim, 1);
+        g.text("Back", x + 16, y + 3, skin.text, false);
+        addHit(x, y, back, 14, () -> {
+            detail = null;
+            scroll = 0;
+        }, null);
+
+        int leftW = Math.max(110, cw * 36 / 100);
+        int ly = y + 22;
+        int tint = TINTS[modules.indexOf(m) % TINTS.length];
+        Look.round(g, x, ly, 30, 30, 8, Look.withAlpha(tint, 0x44));
+        Icons.draw(g, m.icon, x + 7, ly + 7, tint, 2);
+        g.text(m.name, x + 38, ly + 5, accent, true);
+        if (m.on != null) {
+            boolean on = m.on.getAsBoolean();
+            switchAt(g, x + 38, ly + 18, on, accent, skin.off);
+            g.text(on ? "On" : "Off", x + 64, ly + 19, on ? skin.text : skin.dim, false);
+            addHit(x + 36, ly + 14, 60, 16, () -> m.setOn.accept(!m.on.getAsBoolean()), null);
+        }
+        int dy = ly + 38;
+        for (String line : wrap(g, m.desc, leftW - 4)) {
+            g.text(line, x, dy, skin.dim, false);
             dy += 10;
         }
-        dy += 6;
+        int rx = x + leftW + 14;
+        int rw = cw - leftW - 14;
+        g.fill(x + leftW + 6, y + 22, x + leftW + 7, y + 22 + Math.max(60, dy - y - 22), skin.edge);
+        int sy = y + 22;
+        if (m.settings.isEmpty()) g.text("No extra settings.", rx, sy + 2, skin.dim, false);
         for (Setting s : m.settings) {
-            if (dy + s.height() > py + ph - 6) break;
-            drawSetting(g, s, dx, dy, dw, accent, mx, my);
-            dy += s.height();
+            drawSetting(g, s, rx, sy, rw, accent, mx, my);
+            sy += s.height();
         }
+        return Math.max(dy, sy) - y + 6;
+    }
+
+    private Module named(String name) {
+        for (Module m : modules) if (m.name.equals(name)) return m;
+        throw new IllegalStateException(name);
+    }
+
+    /** Overlay look on the left, the menu's own look on the right. */
+    private int stylePage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
+        int colW = (cw - 14) / 2;
+        int rx = x + colW + 14;
+        g.text("Overlay", x, y, accent, true);
+        g.text("This menu", rx, y, accent, true);
+        g.fill(x + colW + 6, y, x + colW + 7, y + 150, skin.edge);
+        int ly = y + 14;
+        for (Setting s : named("Appearance").settings) {
+            drawSetting(g, s, x, ly, colW, accent, mx, my);
+            ly += s.height();
+        }
+        int ry = y + 14;
+        for (Setting s : named("Menu look").settings) {
+            drawSetting(g, s, rx, ry, colW, accent, mx, my);
+            ry += s.height();
+        }
+        ry += 6;
+        for (String line : wrap(g, "A picture for the backdrop is chosen in the Lumen launcher (HUD Editor).", colW)) {
+            g.text(line, rx, ry, skin.dim, false);
+            ry += 10;
+        }
+        return Math.max(ly, ry) - y + 4;
+    }
+
+    /** What the player looks like, read from the files the launcher writes. */
+    private int cosmeticsPage(Gfx g, int x, int y, int cw) {
+        SkinConfig.changed();
+        int w = (cw - 12) / 3;
+        int h = 56;
+        info(g, x, y, w, h, "hanger", TINTS[0], "Skin", SkinConfig.enabled ? (SkinConfig.slim ? "Custom, slim arms" : "Custom skin") : "Default skin");
+        info(g, x + w + 6, y, w, h, "cape", TINTS[1], "Cape", SkinConfig.cape ? "Custom cape" : "No cape");
+        info(g, x + 2 * (w + 6), y, w, h, "eye", TINTS[3], "Lumen players", "Their skins and capes show through the Lumen service");
+        int ty = y + h + 12;
+        g.text("Skin and cape are chosen in the Lumen launcher, on the Skin page.", x + 2, ty, skin.dim, false);
+        g.text("Only you see them, unless the other players use Lumen too.", x + 2, ty + 11, skin.dim, false);
+        return ty + 24 - y;
+    }
+
+    private void info(Gfx g, int x, int y, int w, int h, String icon, int tint, String title, String text) {
+        Look.round(g, x, y, w, h, 6, skin.card);
+        Look.round(g, x + 6, y + 6, 16, 16, 4, Look.withAlpha(tint, 0x44));
+        Icons.draw(g, icon, x + 10, y + 10, tint, 1);
+        g.text(title, x + 28, y + 10, skin.text, false);
+        int ty = y + 28;
+        for (String line : wrap(g, text, w - 12)) {
+            if (ty > y + h - 8) break;
+            g.text(line, x + 6, ty, skin.dim, false);
+            ty += 10;
+        }
+    }
+
+    private int settingsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
+        int colW = Math.min(cw, 230);
+        int cy = y;
+        String edit = "Edit the layout";
+        int bw = g.width(edit) + 20;
+        boolean over = mx >= x && mx < x + bw && my >= cy && my < cy + 18;
+        Look.round(g, x, cy, bw, 18, 5, over ? Look.withAlpha(accent, 0xFF) : Look.withAlpha(accent, 0xA0));
+        g.text(edit, x + 10, cy + 5, 0xFFFFFFFF, false);
+        addHit(x, cy, bw, 18, () -> wantsLayout = true, null);
+        g.text("Drag the overlay elements where you want them.", x + bw + 8, cy + 5, skin.dim, false);
+        cy += 28;
+        Setting f3 = Setting.sw("Hide the overlay when F3 is open", () -> HudConfig.get().hideInDebug, v -> HudConfig.get().hideInDebug = v);
+        drawSetting(g, f3, x, cy, colW, accent, mx, my);
+        cy += f3.height() + 8;
+        g.text("Keys", x, cy, accent, true);
+        cy += 13;
+        for (String line : new String[]{"Right Shift   this menu", "C   zoom (hold)", "Left Alt   freelook (hold)", "Esc   close the menu"}) {
+            g.text(line, x + 2, cy, skin.dim, false);
+            cy += 11;
+        }
+        cy += 6;
+        g.text("Lumen HUD 1.0.0", x, cy, skin.dim, false);
+        return cy + 12 - y;
     }
 
     private void drawSetting(Gfx g, Setting s, int x, int y, int w, int accent, int mx, int my) {
@@ -320,7 +529,7 @@ public final class LumenMenu {
             case SWITCH -> {
                 g.text(s.label, x, y + 4, TEXT, false);
                 switchAt(g, x + w - 26, y + 4, s.getBool.getAsBoolean(), accent, skin.off);
-                hits.add(new Hit(x, y, w, 18, () -> s.setBool.accept(!s.getBool.getAsBoolean()), null));
+                addHit(x, y, w, 18, () -> s.setBool.accept(!s.getBool.getAsBoolean()), null);
             }
             case SLIDER -> {
                 double v = s.getNum.getAsDouble();
@@ -333,7 +542,7 @@ public final class LumenMenu {
                 int kx = x + (int) Math.round(t * (w - 6));
                 Look.round(g, x, ty, Math.max(4, kx - x + 3), 4, 2, accent);
                 Look.round(g, kx, ty - 2, 6, 8, 3, 0xFFFFFFFF);
-                hits.add(new Hit(x - 2, y + 12, w + 4, 14, null, s));
+                addHit(x - 2, y + 12, w + 4, 14, null, s);
             }
             case CHOICE -> {
                 g.text(s.label, x, y + 4, TEXT, false);
@@ -342,7 +551,7 @@ public final class LumenMenu {
                 int bw = g.width(v) + 14;
                 Look.round(g, x + w - bw, y + 1, bw, 15, 4, Look.withAlpha(accent, 0x70));
                 g.text(v, x + w - bw + 7, y + 5, 0xFFFFFFFF, false);
-                hits.add(new Hit(x + w - bw, y + 1, bw, 15, () -> s.setIdx.accept((s.getIdx.getAsInt() + 1) % s.options.length), null));
+                addHit(x + w - bw, y + 1, bw, 15, () -> s.setIdx.accept((s.getIdx.getAsInt() + 1) % s.options.length), null);
             }
             case ACTIONS -> {
                 g.text(s.label, x, y + 2, TEXT, false);
@@ -353,7 +562,7 @@ public final class LumenMenu {
                     Look.round(g, ax, y + 12, bw, 14, 4, hot ? Look.withAlpha(accent, 0xB0) : Look.withAlpha(accent, 0x55));
                     g.text(s.actions[i], ax + 5, y + 15, 0xFFFFFFFF, false);
                     final int idx = i;
-                    hits.add(new Hit(ax, y + 12, bw, 14, () -> s.onAction.accept(idx), null));
+                    addHit(ax, y + 12, bw, 14, () -> s.onAction.accept(idx), null);
                     ax += bw + 4;
                 }
             }
@@ -364,10 +573,10 @@ public final class LumenMenu {
                 for (String hex : s.colors) {
                     int col = 0xFF000000 | Integer.parseUnsignedInt(hex.substring(1), 16);
                     boolean on = hex.equalsIgnoreCase(cur);
-                    if (on) Look.round(g, cx - 1, y + 12, 15, 15, 4, 0xFFFFFFFF);
+                    if (on) Look.round(g, cx - 1, y + 12, 15, 15, 4, TEXT);
                     Look.round(g, cx, y + 13, 13, 13, 3, col);
                     final String chosen = hex;
-                    hits.add(new Hit(cx, y + 12, 14, 15, () -> s.setColor.accept(chosen), null));
+                    addHit(cx, y + 12, 14, 15, () -> s.setColor.accept(chosen), null);
                     cx += 17;
                 }
             }
@@ -397,14 +606,18 @@ public final class LumenMenu {
 
     // ---------------- input ----------------
 
+    private boolean inWindow(double mx, double my) {
+        return (mx >= px && my >= py && mx < px + pw && my < py + ph) || (mx >= dockX && my >= dockY && mx < dockX + dockW && my < dockY + dockH);
+    }
+
     /** @return true when the click was inside the menu */
     public boolean press(double mx, double my, int button) {
-        if (!(mx >= px && my >= py && mx < px + pw && my < py + ph)) return false;
+        if (!inWindow(mx, my)) return false;
         if (button != 0) return true;
         for (int i = hits.size() - 1; i >= 0; i--) {
             Hit h = hits.get(i);
             if (!h.at(mx, my)) continue;
-            if (h.inList && (my < listY || my >= listY + listH)) continue; // the part of a row scrolled out of view
+            if (h.inContent && (my < contentTop || my >= contentBottom)) continue; // the part scrolled out of view
             if (h.slider != null) {
                 dragging = h.slider;
                 dragX = h.x + 2;
@@ -437,7 +650,7 @@ public final class LumenMenu {
     }
 
     public boolean scroll(double mx, double my, double dy) {
-        if (!(mx >= px && my >= py && mx < px + pw && my < py + ph)) return false;
+        if (!inWindow(mx, my)) return false;
         scroll = Math.max(0, Math.min(maxScroll, scroll - Math.signum(dy) * 24));
         return true;
     }

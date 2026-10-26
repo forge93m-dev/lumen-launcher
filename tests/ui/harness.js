@@ -6,6 +6,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// The window stays far off screen and unfocused: tests must not cover what the developer is doing (a video, a game).
+process.env.LUMEN_NO_WINDOW = '1';
+process.env.LUMEN_SKIN_SERVICE = ''; // tests never talk to the real Lumen skin service
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lumen-ui-'));
 process.env.APPDATA = dir;
 process.env.HOME = dir;
@@ -41,6 +44,8 @@ async function run(name, body, { setup, size = [1240, 800] } = {}) {
     win = BrowserWindow.getAllWindows()[0];
     win.webContents.setBackgroundThrottling(false);
     win.setSize(size[0], size[1]);
+    const b = win.getBounds();
+    check('the test window stays off screen and unfocused', b.x < -10000 && !win.isFocused(), JSON.stringify(b));
     const js = (code) => win.webContents.executeJavaScript(code);
     // Anything that throws in the page during the test is a failure of the test. The collector is installed again
     // whenever the page reloads (the language switch reloads it on purpose).
