@@ -73,6 +73,11 @@ public class HudConfig {
     public int durabilityPercent = 10;
     /** glass | flat | minimal */
     public String theme = "glass";
+    /** Colours of the in-game menu: see {@link Skin#NAMES}. */
+    public String menuSkin = "midnight";
+    /** Behind the menu: dim | gradient | image (config/lumen-menu-bg.png, set in the launcher). */
+    public String menuBackground = "dim";
+    public double menuDim = 0.55;
     /** Field of view while the zoom key (C) is held. */
     public int zoomFov = 30;
     public Map<String, Element> elements = new LinkedHashMap<>();

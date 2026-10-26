@@ -195,12 +195,19 @@ public class LumenHud implements ClientModInitializer {
                 }
             }, client.getWindow().getScaleFactor());
         }
-        if (worldTicks == 345) {
+        if (worldTicks == 345) { // the menu with a custom picture and the ocean skin, then with a gradient and the light skin
+            HudConfig.get().menuSkin = "ocean";
+            HudConfig.get().menuBackground = "image";
             client.setScreen(new EditScreen());
         } else if (worldTicks == 365) {
             ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
+        } else if (worldTicks == 380) {
+            HudConfig.get().menuSkin = "light";
+            HudConfig.get().menuBackground = "gradient";
+        } else if (worldTicks == 400) {
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
         }
-        if (worldTicks == 385) {
+        if (worldTicks == 420) {
             client.scheduleStop();
         }
     }

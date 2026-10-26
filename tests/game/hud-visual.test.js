@@ -16,6 +16,27 @@ const hud = require('../../core/hud');
 const paths = require('../../core/paths');
 const { download } = require('../../core/net');
 
+// A small picture to put behind the menu (PNG written by hand, no image library needed).
+function makePng(w, h) {
+  const zlib = require('zlib');
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    raw[y * (w * 3 + 1)] = 0;
+    for (let x = 0; x < w; x++) {
+      const o = y * (w * 3 + 1) + 1 + x * 3;
+      const ring = Math.abs(Math.hypot(x - w * 0.7, y - h * 0.4) - h * 0.28) < 6;
+      raw[o] = ring ? 255 : 30 + (x * 120) / w;
+      raw[o + 1] = ring ? 200 : 20 + (y * 140) / h;
+      raw[o + 2] = ring ? 80 : 160 - (x * 60) / w;
+    }
+  }
+  const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const chunk = (type, data) => { const t = Buffer.concat([Buffer.from(type), data]); const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const c = Buffer.alloc(4); c.writeUInt32BE(crc(t)); return Buffer.concat([len, t, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
 const VERSIONS = (process.env.LUMEN_TEST_VERSIONS || '26.3').split(',');
 // LUMEN_REAL_MOUSE=1: instead of the replayed events, drag with the real OS cursor (it takes over the mouse for a few seconds).
 const REAL_MOUSE = process.env.LUMEN_REAL_MOUSE === '1';
@@ -68,6 +89,8 @@ for (const version of VERSIONS) {
     } else {
       await hud.install(inst.id);
     }
+    fs.mkdirSync(path.join(instances.dirOf(inst.id), 'config'), { recursive: true });
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-menu-bg.png'), makePng(480, 270));
     const i2 = instances.read(inst.id);
     const ctx = await game.prepare(i2, () => {});
     await instances.patch(inst.id, (x) => { x.loaderVersion = i2.loaderVersion; });
@@ -126,10 +149,10 @@ for (const version of VERSIONS) {
     assert.ok(drag && /drag OK/.test(drag), `dragging an element in the editor must work: ${drag || 'no drag result in the log'}`);
     const shots = path.join(instances.dirOf(inst.id), 'screenshots');
     const files = fs.existsSync(shots) ? fs.readdirSync(shots).filter((f) => f.endsWith('.png')) : [];
-    assert.equal(files.length, 3, `the self-test should have taken three screenshots (HUD, layout editor, menu); log tail:\n${lines.slice(-8).join('\n')}`);
+    assert.equal(files.length, 4, `the self-test should have taken four screenshots (HUD, layout editor, menu with a picture, menu with a gradient); log tail:\n${lines.slice(-8).join('\n')}`);
     if (process.env.LUMEN_SHOTS) {
       fs.mkdirSync(process.env.LUMEN_SHOTS, { recursive: true });
-      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['hud', 'editor', 'menu'][i]}.png`)));
+      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['hud', 'editor', 'menu', 'menu2'][i]}.png`)));
     }
     await sleep(2500);
     await instances.remove(inst.id);

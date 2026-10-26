@@ -30,7 +30,12 @@ public abstract class EditScreenBase extends Screen {
 
     @Override
     public void renderBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, width, height, 0x88000000);
+        if (layout) {
+            ctx.fill(0, 0, width, height, 0x88000000);
+            return;
+        }
+        boolean picture = "image".equals(HudConfig.get().menuBackground) && MenuImage.draw(ctx, width, height);
+        Skin.backdrop(new GfxImpl(ctx, textRenderer), width, height, picture);
     }
 
     @Override

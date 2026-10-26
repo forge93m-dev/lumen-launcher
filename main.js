@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, screen, nativeImage } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -154,10 +154,29 @@ handle('modules:list', async () => {
 });
 
 // ---- Lumen HUD ----
-handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers, presets: hud.PRESETS }));
+handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers, presets: hud.PRESETS, skins: hud.SKINS }));
 handle('hud:get', (id) => hud.getConfig(id));
 handle('hud:set', (id, cfg) => hud.setConfig(id, cfg));
 handle('hud:reset', (id) => hud.resetConfig(id));
+// Picture behind the in-game menu. The game only reads PNG, so any picture is converted (and shrunk to 1920 wide).
+const bgState = (id) => {
+  const f = hud.menuBackgroundFile(id);
+  if (!fs.existsSync(f)) return { has: false };
+  const img = nativeImage.createFromPath(f);
+  return { has: true, thumb: img.resize({ width: 320 }).toDataURL(), width: img.getSize().width, height: img.getSize().height };
+};
+handle('hud:bgState', (id) => { instances.read(id); return bgState(id); });
+handle('hud:bgPick', async (id) => {
+  instances.read(id);
+  const r = await dialog.showOpenDialog(win, { title: L('Menu background', 'Фон меню'), filters: [{ name: L('Pictures', 'Картинки'), extensions: ['png', 'jpg', 'jpeg', 'bmp', 'webp'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  let img = nativeImage.createFromPath(r.filePaths[0]);
+  if (img.isEmpty()) throw new Error('This file is not a picture the launcher can read');
+  if (img.getSize().width > 1920) img = img.resize({ width: 1920, quality: 'best' });
+  require('./core/fsutil').writeFileAtomic(hud.menuBackgroundFile(id), img.toPNG());
+  return bgState(id);
+});
+handle('hud:bgClear', (id) => { instances.read(id); fs.rmSync(hud.menuBackgroundFile(id), { force: true }); return { has: false }; });
 handle('hud:icons', () => hud.previewIcons());
 
 // ---- news, servers, screenshots ----

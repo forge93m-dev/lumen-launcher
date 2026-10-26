@@ -185,12 +185,19 @@ public class LumenHud implements ClientModInitializer {
         } else if (worldTicks > 230 && worldTicks < 320 && Compat.screen(client) instanceof EditScreen) {
             DragProbe.tick(worldTicks - 230, Compat.mouseSink(client), client.getWindow().getGuiScale());
         }
-        if (worldTicks == 345) {
+        if (worldTicks == 345) { // the menu with a custom picture and the ocean skin, then with a gradient and the light skin
+            HudConfig.get().menuSkin = "ocean";
+            HudConfig.get().menuBackground = "image";
             Compat.setScreen(client, new EditScreen());
         } else if (worldTicks == 365) {
             Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
+        } else if (worldTicks == 380) {
+            HudConfig.get().menuSkin = "light";
+            HudConfig.get().menuBackground = "gradient";
+        } else if (worldTicks == 400) {
+            Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
         }
-        if (worldTicks == 385) {
+        if (worldTicks == 420) {
             client.stop();
         }
     }

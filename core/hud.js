@@ -59,6 +59,9 @@ function defaults() {
     deathChat: true,
     durabilityPercent: 10,
     theme: 'glass',
+    menuSkin: 'midnight',
+    menuBackground: 'dim',
+    menuDim: 0.55,
     elements: {
       fps: { enabled: true, ax: 0, ay: 0, x: 2, y: 2, scale: 1 },
       cps: { enabled: true, ax: 0, ay: 0, x: 2, y: 19, scale: 1 },
@@ -92,6 +95,16 @@ const PRESETS = {
   Clean: { theme: 'minimal', on: ['fps', 'coords'] },
 };
 
+// Mirrors Skin.java: colours of the in-game menu (the first four of each skin).
+const SKINS = {
+  midnight: { panel: '#101018', edge: '#2B2B3D', text: '#EDEDF5', dim: '#8A8AA3' },
+  graphite: { panel: '#161616', edge: '#343434', text: '#EEEEEE', dim: '#9A9A9A' },
+  ocean: { panel: '#0B1622', edge: '#1D3B55', text: '#E6F3FF', dim: '#7FA3C0' },
+  rose: { panel: '#190F16', edge: '#4A2340', text: '#FFEAF5', dim: '#B58AA8' },
+  forest: { panel: '#0E1A14', edge: '#254634', text: '#E9FFF1', dim: '#80B08F' },
+  light: { panel: '#F4F4F8', edge: '#CFCFD9', text: '#1B1B26', dim: '#6B6B80' },
+};
+
 const configFile = (instId) => path.join(instances.dirOf(instId), 'config', 'lumenhud.json');
 
 function supports(inst) {
@@ -112,6 +125,9 @@ function setConfig(instId, cfg) {
   writeFileAtomic(f, JSON.stringify({ ...cfg, version: 2 }, null, 2));
   return cfg;
 }
+
+// The picture behind the in-game menu: a PNG next to the HUD config, which the mod reads.
+const menuBackgroundFile = (instId) => path.join(instances.dirOf(instId), 'config', 'lumen-menu-bg.png');
 
 function resetConfig(instId) {
   return setConfig(instId, defaults());
@@ -200,4 +216,4 @@ function previewIcons() {
   return out;
 }
 
-module.exports = { ID, VERSION, GAME_VERSIONS, matchers, PRESETS, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };
+module.exports = { ID, VERSION, GAME_VERSIONS, matchers, PRESETS, SKINS, menuBackgroundFile, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };

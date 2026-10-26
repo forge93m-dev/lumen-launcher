@@ -171,3 +171,16 @@ test('hud: the launcher\'s presets are the mod\'s presets (Presets.java)', () =>
     assert.deepEqual([...hud.PRESETS[n].on].sort(), [...byIndex[i].on].sort(), `${n}: elements`);
   });
 });
+
+test('hud: the launcher\'s menu skins are the mod\'s skins (Skin.java)', () => {
+  const java = fs.readFileSync(path.join(__dirname, '..', '..', 'hud-mod', 'common', 'dev', 'lumen', 'hud', 'Skin.java'), 'utf8');
+  const names = /NAMES = \{([^}]*)\}/.exec(java)[1].split(',').map((x) => x.trim().replace(/"/g, ''));
+  assert.deepEqual(Object.keys(hud.SKINS), names, 'same skins in the same order');
+  const rows = [...java.matchAll(/new Skin\(0x[0-9A-F]{2}([0-9A-F]{6}), 0x[0-9A-F]{2}([0-9A-F]{6}), 0x[0-9A-F]{2}([0-9A-F]{6}), 0x[0-9A-F]{2}([0-9A-F]{6}),/gi)];
+  assert.equal(rows.length, names.length);
+  names.forEach((n, i) => {
+    const want = { panel: `#${rows[i][1]}`, edge: `#${rows[i][2]}`, text: `#${rows[i][3]}`, dim: `#${rows[i][4]}` };
+    assert.deepEqual(hud.SKINS[n], want, n);
+  });
+  assert.equal(hud.defaults().menuSkin, 'midnight');
+});

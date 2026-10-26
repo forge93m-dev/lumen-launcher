@@ -1285,6 +1285,20 @@ function hudRenderPanel() {
       </div>
     </div>
     <div class="card panel">
+      <h3>Menu look</h3><p>The in-game menu (Right Shift): its colours and what is behind it.</p>
+      <div class="stack">
+        <div><div class="k" style="font-weight:600;margin-bottom:8px">Skin</div>
+          <div class="skins">${Object.entries((S.hudInfo && S.hudInfo.skins) || {}).map(([k, sk]) => `<button class="skin ${(c.menuSkin || 'midnight') === k ? 'on' : ''}" data-act="hud-skin" data-k="${k}" title="${k}" style="background:${sk.panel};border-color:${sk.edge}"><span style="color:${sk.text}">●</span><i style="background:${c.accentColor}"></i></button>`).join('')}</div></div>
+        <div><div class="k" style="font-weight:600;margin-bottom:8px">Backdrop</div>
+          <div class="seg">${[['dim', 'Dim'], ['gradient', 'Gradient'], ['image', 'Picture']].map(([k, l]) => `<button class="${(c.menuBackground || 'dim') === k ? 'on' : ''}" data-act="hud-backdrop" data-k="${k}">${l}</button>`).join('')}</div></div>
+        ${c.menuBackground === 'image' ? `<div class="bgrow">
+          ${S.hud.bg && S.hud.bg.has ? `<img class="bgthumb" src="${S.hud.bg.thumb}"><div class="grow small muted">${S.hud.bg.width}×${S.hud.bg.height}</div><button class="btn sm" data-act="hud-bg-clear">Remove</button>` : '<div class="grow small muted">No picture chosen yet.</div>'}
+          <button class="btn sm" data-act="hud-bg-pick">${ic('image')}Choose picture</button></div>` : ''}
+        <div><div class="opt small"><span class="muted">Backdrop dimming</span><span>${Math.round((c.menuDim ?? 0.55) * 100)}%</span></div>
+          <input type="range" id="hud-menudim" min="0" max="0.95" step="0.05" value="${c.menuDim ?? 0.55}" style="--p:${((c.menuDim ?? 0.55) / 0.95) * 100}%;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="card panel">
       <h3>Style</h3><p>Applies to every element.</p>
       <div class="stack">
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Preset</div>
@@ -1318,6 +1332,13 @@ function hudRenderPanel() {
     zf.parentElement.querySelector('.opt span:last-child').textContent = `${zf.value}°`;
     hudSave();
   });
+  const md = $('#hud-menudim');
+  if (md) md.addEventListener('input', () => {
+    c.menuDim = +md.value;
+    md.style.setProperty('--p', `${(md.value / 0.95) * 100}%`);
+    md.parentElement.querySelector('.opt span:last-child').textContent = `${Math.round(md.value * 100)}%`;
+    hudSave();
+  });
   const du = $('#hud-durability');
   if (du) du.addEventListener('input', () => {
     c.durabilityPercent = +du.value;
@@ -1349,7 +1370,7 @@ VIEWS.hud = async (page) => {
   if (!S.hud || S.hud.instId !== inst.id) {
     page.innerHTML = '<div class="loading"><span class="spinner"></span></div>';
     const [cfg, icons] = await Promise.all([api.call('hud:get', inst.id), api.call('hud:icons').catch(() => ({}))]);
-    S.hud = { instId: inst.id, cfg, icons, sel: 'fps' };
+    S.hud = { instId: inst.id, cfg, icons, sel: 'fps', bg: await api.call('hud:bgState', inst.id).catch(() => ({ has: false })) };
     if (S.view !== 'hud') return;
   }
   const bg = S.news && S.news[0] && S.news[0].image;
@@ -1833,6 +1854,28 @@ const ACTIONS = {
     hudRenderPreview();
     hudRenderPanel();
     hudSave();
+  },
+  'hud-skin': (d) => {
+    S.hud.cfg.menuSkin = d.k;
+    hudRenderPanel();
+    hudSave();
+  },
+  'hud-backdrop': (d) => {
+    S.hud.cfg.menuBackground = d.k;
+    hudRenderPanel();
+    hudSave();
+  },
+  'hud-bg-pick': async () => {
+    try {
+      const r = await api.call('hud:bgPick', S.hud.instId);
+      if (!r) return;
+      S.hud.bg = r;
+      hudRenderPanel();
+    } catch (e) { toast(e.message, 'err'); }
+  },
+  'hud-bg-clear': async () => {
+    S.hud.bg = await api.call('hud:bgClear', S.hud.instId);
+    hudRenderPanel();
   },
   'hud-theme': (d) => {
     S.hud.cfg.theme = d.k;

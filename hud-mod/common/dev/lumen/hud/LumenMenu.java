@@ -178,6 +178,10 @@ public final class LumenMenu {
                 .with(Setting.slider("Field of view", 5, 60, 1, "°", () -> HudConfig.get().zoomFov, v -> HudConfig.get().zoomFov = (int) v))
                 .with(Setting.sw("Smooth zoom", () -> HudConfig.get().smoothZoom, v -> HudConfig.get().smoothZoom = v)));
 
+        out.add(new Module("STYLE", "Menu look", "The colours and the backdrop of this menu. A picture is chosen in the Lumen launcher (HUD Editor).", null, null)
+                .with(Setting.choice("Skin", Skin.NAMES, () -> Skin.index(HudConfig.get().menuSkin), i -> HudConfig.get().menuSkin = Skin.NAMES[i]))
+                .with(Setting.choice("Backdrop", Skin.BACKGROUNDS, () -> Math.max(0, java.util.Arrays.asList(Skin.BACKGROUNDS).indexOf(HudConfig.get().menuBackground)), i -> HudConfig.get().menuBackground = Skin.BACKGROUNDS[i]))
+                .with(Setting.slider("Backdrop dimming", 0, 0.95, 0.05, "%", () -> HudConfig.get().menuDim, v -> HudConfig.get().menuDim = v).asPercent()));
         out.add(new Module("STYLE", "Appearance", "How every overlay looks.", null, null)
                 .with(Setting.actions("Preset", Presets.NAMES, Presets::apply))
                 .with(Setting.choice("Theme", Look.THEMES, () -> Math.max(0, java.util.Arrays.asList(Look.THEMES).indexOf(HudConfig.get().theme)), i -> HudConfig.get().theme = Look.THEMES[i]))
@@ -217,13 +221,12 @@ public final class LumenMenu {
 
     // ---------------- drawing ----------------
 
-    private static final int PANEL = 0xF2101018;
-    private static final int EDGE = 0xFF2B2B3D;
-    private static final int DIM = 0xFF8A8AA3;
-    private static final int TEXT = 0xFFEDEDF5;
+    private Skin skin = Skin.current();
 
     public void render(Gfx g, int sw, int sh, int mx, int my) {
         hits.clear();
+        skin = Skin.current();
+        final int PANEL = skin.panel, EDGE = skin.edge, DIM = skin.dim, TEXT = skin.text;
         HudConfig cfg = HudConfig.get();
         int accent = cfg.accent();
         pw = Math.min(sw - 16, 500);
@@ -266,9 +269,9 @@ public final class LumenMenu {
             boolean sel = i == selected;
             boolean over = mx >= listX && mx < listX + listW && my >= y && my < y + 20 && my >= listY && my < listY + listH;
             if (sel) Look.round(g, listX, y, listW - 4, 20, 4, Look.withAlpha(accent, 0x38));
-            else if (over) Look.round(g, listX, y, listW - 4, 20, 4, 0x18FFFFFF);
+            else if (over) Look.round(g, listX, y, listW - 4, 20, 4, skin.hover);
             g.text(m.name, listX + 8, y + 6, m.on != null && !m.on.getAsBoolean() ? DIM : TEXT, false);
-            if (m.on != null) switchAt(g, listX + listW - 4 - 26, y + 5, m.on.getAsBoolean(), accent);
+            if (m.on != null) switchAt(g, listX + listW - 4 - 26, y + 5, m.on.getAsBoolean(), accent, skin.off);
             final int idx = i;
             final Module mod = m;
             if (y + 20 > listY && y < listY + listH) {
@@ -287,7 +290,7 @@ public final class LumenMenu {
         if (maxScroll > 0) { // scroll bar
             int th = Math.max(16, (int) (listH * (listH / (double) total)));
             int ty = listY + (int) ((listH - th) * (scroll / maxScroll));
-            Look.round(g, listX + listW - 2, ty, 2, th, 1, 0x66FFFFFF);
+            Look.round(g, listX + listW - 2, ty, 2, th, 1, skin.track);
         }
 
         // detail
@@ -312,10 +315,11 @@ public final class LumenMenu {
     }
 
     private void drawSetting(Gfx g, Setting s, int x, int y, int w, int accent, int mx, int my) {
+        final int TEXT = skin.text, DIM = skin.dim;
         switch (s.kind) {
             case SWITCH -> {
                 g.text(s.label, x, y + 4, TEXT, false);
-                switchAt(g, x + w - 26, y + 4, s.getBool.getAsBoolean(), accent);
+                switchAt(g, x + w - 26, y + 4, s.getBool.getAsBoolean(), accent, skin.off);
                 hits.add(new Hit(x, y, w, 18, () -> s.setBool.accept(!s.getBool.getAsBoolean()), null));
             }
             case SLIDER -> {
@@ -324,7 +328,7 @@ public final class LumenMenu {
                 g.text(s.label, x, y + 2, TEXT, false);
                 g.text(value, x + w - g.width(value), y + 2, DIM, false);
                 int ty = y + 16;
-                Look.round(g, x, ty, w, 4, 2, 0x44FFFFFF);
+                Look.round(g, x, ty, w, 4, 2, skin.track);
                 double t = (v - s.min) / (s.max - s.min);
                 int kx = x + (int) Math.round(t * (w - 6));
                 Look.round(g, x, ty, Math.max(4, kx - x + 3), 4, 2, accent);
@@ -370,8 +374,8 @@ public final class LumenMenu {
         }
     }
 
-    private static void switchAt(Gfx g, int x, int y, boolean on, int accent) {
-        Look.round(g, x, y, 22, 10, 5, on ? accent : 0xFF3A3A4D);
+    private static void switchAt(Gfx g, int x, int y, boolean on, int accent, int off) {
+        Look.round(g, x, y, 22, 10, 5, on ? accent : off);
         Look.round(g, on ? x + 13 : x + 1, y + 1, 8, 8, 4, 0xFFFFFFFF);
     }
 

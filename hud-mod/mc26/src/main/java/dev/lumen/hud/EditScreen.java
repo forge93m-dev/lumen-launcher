@@ -33,7 +33,12 @@ public class EditScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        g.fill(0, 0, width, height, 0x88000000);
+        if (layout) {
+            g.fill(0, 0, width, height, 0x88000000);
+            return;
+        }
+        boolean picture = "image".equals(HudConfig.get().menuBackground) && MenuImage.draw(g, width, height);
+        Skin.backdrop(new GfxImpl(g, font), width, height, picture);
     }
 
     @Override
