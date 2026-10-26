@@ -498,6 +498,7 @@ VIEWS.instances = (page) => {
           </div>
           <div class="actions tools">
             <button class="btn sm icon" title="Edit" data-act="edit-instance" data-id="${i.id}">${ic('edit')}</button>
+            <button class="btn sm icon" title="Graphics" data-act="instance-graphics" data-id="${i.id}">${ic('zap')}</button>
             <button class="btn sm icon" title="Duplicate" data-act="duplicate-instance" data-id="${i.id}">${ic('copy')}</button>
             <button class="btn sm icon" title="Open folder" data-act="open-instance" data-id="${i.id}">${ic('folder')}</button>
             <button class="btn sm icon" title="Export as .mrpack" data-act="export-pack" data-id="${i.id}">${ic('up')}</button>
@@ -1801,6 +1802,26 @@ const ACTIONS = {
   'pick-instance': () => pickInstance(),
   'select-instance': async (d) => { await saveCfg({ selectedInstance: d.id }); S.updates = null; render(); },
   'open-instance': (d) => api.call('instances:open', d.id, d.sub),
+  'instance-graphics': async (d) => {
+    const inst = S.instances.find((x) => x.id === d.id);
+    let state = await api.call('graphics:get', d.id);
+    const body = () => `<h2>Graphics</h2><p class="sub">${esc(inst.name)}: trade looks for frames per second with one click. Applies the next time you start the game.</p>
+      <div class="gfx">${state.profiles.map((p) => `<button class="gfx-card ${state.current === p.id ? 'on' : ''}" data-profile="${p.id}"><b>${p.name}</b><span>${p.desc}</span></button>`).join('')}</div>
+      <div class="small muted" style="margin-top:12px">${state.current ? '' : 'Your settings do not match a profile yet. Pick one to replace them: view distance, graphics mode, particles, clouds and shadows change; everything else stays.'}</div>
+      <div class="foot"><button class="btn" data-close="1">Close</button></div>`;
+    const m = modal(body());
+    const paint = () => { m.querySelector('.modal').innerHTML = body(); };
+    m.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-close]')) return m.close();
+      const card = e.target.closest('[data-profile]');
+      if (!card) return;
+      try {
+        state = await api.call('graphics:set', d.id, card.dataset.profile);
+        paint();
+        toast('Graphics changed. It applies the next time you start the game');
+      } catch (err) { toast(err.message, 'err'); }
+    });
+  },
   'delete-instance': async (d) => {
     const i = S.instances.find((x) => x.id === d.id);
     if (!(await confirmBox(`Delete ${i.name}?`, 'Worlds, mods and screenshots in this instance will be removed permanently.'))) return;

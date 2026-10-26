@@ -11,6 +11,7 @@ const modules = require('./core/modules');
 const hud = require('./core/hud');
 const skins = require('./core/skins');
 const cloud = require('./core/cloud');
+const graphics = require('./core/graphics');
 const doctor = require('./core/doctor');
 const packs = require('./core/packs');
 const migrate = require('./core/migrate');
@@ -125,6 +126,16 @@ handle('instances:remove', async (id) => {
   await instances.remove(id);
 });
 handle('instances:open', (id, sub) => shell.openPath(path.join(instances.dirOf(id), sub || '')));
+
+// ---- graphics profiles (core/graphics.js)
+handle('graphics:get', (id) => { instances.read(id); return { profiles: graphics.list(), current: graphics.current(id) }; });
+handle('graphics:set', (id, profile) => {
+  instances.read(id);
+  // The game rewrites options.txt when it exits, which would undo the change.
+  if (running && running.instId === id) throw new Error('Close the game first, then change the graphics');
+  graphics.apply(id, profile);
+  return { profiles: graphics.list(), current: graphics.current(id) };
+});
 
 // ---- content ----
 handle('content:list', (id) => ({ ...instances.listContent(id), active: active.get(id) }));

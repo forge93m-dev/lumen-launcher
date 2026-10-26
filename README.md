@@ -10,7 +10,7 @@ npm start
 
 ## Features
 - **One-click PLAY** — downloads Minecraft, the correct Java runtime (from Mojang), libraries, assets and Fabric automatically.
-- **Lumen HUD** — our own Fabric mod (`hud-mod/`): FPS, CPS, ping, speed, clock, keystrokes, coordinates, armor, potion effects, reach, combo, memory, session time, item counter (totems, golden apples, pearls, crystals), target info (name + health), server address and sprint status. Press **Right Shift** in-game for the Lumen menu: module switches, sliders, three overlay themes (glass, flat, minimal), six menu skins (midnight, graphite, ocean, rose, forest, light), a menu backdrop (dim, gradient or your own picture, chosen in the launcher's HUD Editor), colours and one-click presets (Default, PvP, Survival, Clean); *Edit layout* drags elements around. Client features: **Toggle sprint**, **Toggle sneak**, **Fullbright**, **Zoom** (hold C, eases smoothly), **Freelook** (hold Left Alt), a **compass bar** with waypoints (`/lumen wp add|remove|list <name>`), **last death place** (also `/lumen death`), a **durability alert** and target health bars. Everything is also switchable from the launcher's HUD Editor.
+- **Lumen HUD** — our own Fabric mod (`hud-mod/`): FPS, CPS, ping, speed, clock, keystrokes, coordinates, armor, potion effects, reach, combo, memory, session time, item counter (totems, golden apples, pearls, crystals), target info (name + health), server address and sprint status. Press **Right Shift** in-game for the Lumen menu: module cards with switches (click a card for its settings), a dock of pages under the window (modules, style, cosmetics, settings), sliders, three overlay themes (glass, flat, minimal), six menu skins (midnight, graphite, ocean, rose, forest, light), a menu backdrop (dim, gradient or your own picture, chosen in the launcher's HUD Editor), colours and one-click presets (Default, PvP, Survival, Clean); *Edit layout* drags elements around. Client features: **Toggle sprint**, **Toggle sneak**, **Fullbright**, **Zoom** (hold C, eases smoothly), **Freelook** (hold Left Alt), a **compass bar** with waypoints (`/lumen wp add|remove|list <name>`), **last death place** (also `/lumen death`), a **durability alert** and target health bars. Everything is also switchable from the launcher's HUD Editor.
 
 **Skins:** the launcher's *Skin* page keeps a small library (import a 64×64 or old 64×32 PNG, or take the skin of any Minecraft player by nickname), picks classic or slim arms and puts the active skin into every instance with Lumen HUD; the mod draws your own player with it. Capes work the same way (one cape, 64×32 or 22×17 PNG). By itself this is visible only to you; to let other Lumen players see your skin and cape, point everyone's launcher (*Settings → Lumen skin service*) at a Lumen skin service. The service is a small Node server in `server/` (`npm run skin-service`, or free on Cloudflare Workers from `server/cloudflare`; see `server/README.md`). Players who do not use Lumen keep seeing your normal skin: a client cannot change what servers send to others. Edit the layout in the launcher's **HUD Editor** (drag, scroll, right-click, colours); changes apply live in-game. Right Shift opens the in-game editor. Fabric 1.21, 1.21.1, 1.21.4, 1.21.8, 1.21.11 and 26.1 / 26.2 / 26.3 (`hud-mod/mc1.21`, `hud-mod/mc26`, shared code in `hud-mod/common`).
 - **Modpacks** — browse Modrinth Fabric modpacks and install one as its own instance with one click; import or export `.mrpack` files (untrusted packs are validated: no path traversal, trusted download hosts only, checksums verified).
@@ -34,6 +34,12 @@ npm start
 
 Data lives in `%APPDATA%\LumenClient`. Offline accounts only for now.
 
+## Graphics profiles
+
+The lightning button on an instance card opens **Graphics**: Quality, Balanced, Performance or Potato set view distance,
+graphics mode, particles, clouds, shadows and a few more lines of `options.txt` in one click (everything else is left
+alone). Handy when another game is running next to Minecraft.
+
 ## Installer
 
 ```
@@ -52,8 +58,9 @@ Builds both Lumen HUD versions with Gradle + Fabric Loom and copies the jars int
 ## Tests
 ```
 npm test          # fast, offline unit tests
-npm run test:ui   # launches the app in Electron (every page, both languages, spam-proofing)
+npm run test:ui   # drives the app in Electron (every page, both languages, spam-proofing); its window stays far off screen and unfocused
 npm run test:net  # real Modrinth (installs, dependencies, update check, modpacks, version change)
-npm run test:game # starts the real game (downloads Minecraft on the first run)
+npm run test:game # starts the real game (downloads Minecraft on the first run); lowest graphics, 30 fps, below-normal priority, needs a display
+node scripts/preview-menu.js   # draws the in-game menu to PNG files without Minecraft or any window
 ```
 Tests never touch your real data folder. `LUMEN_HOME` moves the data folder (portable install).
