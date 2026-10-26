@@ -132,6 +132,7 @@
     'Menu look': 'Вид меню', 'The in-game menu (Right Shift): its colours and what is behind it.': 'Меню в игре (Right Shift): его цвета и то, что за ним.',
     Skin: 'Скин', Backdrop: 'Фон', Dim: 'Затемнение', Gradient: 'Градиент', Picture: 'Картинка', 'Backdrop dimming': 'Затемнение фона',
     'No picture chosen yet.': 'Картинка ещё не выбрана.', 'Choose picture': 'Выбрать картинку', Remove: 'Убрать',
+    midnight: 'Полночь', graphite: 'Графит', ocean: 'Океан', rose: 'Роза', forest: 'Лес', light: 'Светлая',
     Compass: 'Компас', Preset: 'Пресет', Default: 'По умолчанию', PvP: 'PvP', Survival: 'Выживание', Clean: 'Чистый', 'Last death': 'Место смерти', 'Durability alert': 'Предупреждение о прочности', 'Say it in chat after respawn': 'Написать в чат после возрождения', 'Warn below': 'Предупреждать ниже',
     'Toggle sneak': 'Переключаемый присед', 'Press the sneak key once to sneak, again to stop': 'Нажмите присед один раз, чтобы красться, ещё раз — чтобы остановиться',
     Freelook: 'Свободный обзор', 'Hold Left Alt to look around without turning': 'Зажмите левый Alt, чтобы осматриваться, не поворачивая персонажа',
