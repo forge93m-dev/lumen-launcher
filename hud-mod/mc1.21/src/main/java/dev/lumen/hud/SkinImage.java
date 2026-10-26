@@ -5,19 +5,33 @@ import net.minecraft.util.Identifier;
 
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
-/** The launcher's skin as a texture, loaded when its files appear or change. */
+/** The launcher's skin and cape as textures, loaded when their files appear or change. */
 public final class SkinImage {
-    private static final Identifier ID = Identifier.of("lumenhud", "player_skin");
-    private static boolean ok;
-    private static boolean registered;
+    private static final Identifier SKIN = Identifier.of("lumenhud", "player_skin");
+    private static final Identifier CAPE = Identifier.of("lumenhud", "player_cape");
+    private static boolean skinOk;
+    private static boolean capeOk;
+    private static boolean skinRegistered;
+    private static boolean capeRegistered;
 
     private SkinImage() {}
 
-    /** The texture to draw the local player with, or null for the normal skin. */
-    public static Identifier id() {
+    private static void check() {
         if (SkinConfig.changed()) reload();
-        return ok && SkinConfig.enabled ? ID : null;
+    }
+
+    /** The texture to draw the local player with, or null for the normal skin. */
+    public static Identifier skin() {
+        check();
+        return skinOk ? SKIN : null;
+    }
+
+    /** The local player's cape texture, or null for the normal cape. */
+    public static Identifier cape() {
+        check();
+        return capeOk ? CAPE : null;
     }
 
     public static boolean slim() {
@@ -25,24 +39,28 @@ public final class SkinImage {
     }
 
     private static void reload() {
-        if (registered) {
-            SkinTexture.release(ID);
-            registered = false;
-        }
-        ok = false;
-        if (!SkinConfig.enabled) return;
-        try (InputStream in = Files.newInputStream(SkinConfig.png())) {
+        if (skinRegistered) SkinTexture.release(SKIN);
+        if (capeRegistered) SkinTexture.release(CAPE);
+        skinRegistered = capeRegistered = skinOk = capeOk = false;
+        if (SkinConfig.enabled) skinOk = load(SkinConfig.png(), SKIN, 64, 64);
+        skinRegistered = skinOk;
+        if (SkinConfig.cape) capeOk = load(SkinConfig.capePng(), CAPE, 64, 32);
+        capeRegistered = capeOk;
+    }
+
+    private static boolean load(Path file, Identifier id, int w, int h) {
+        try (InputStream in = Files.newInputStream(file)) {
             NativeImage img = NativeImage.read(in);
-            if (img.getWidth() != 64 || img.getHeight() != 64) {
-                LumenHud.LOG.warn("lumen-skin.png must be 64x64, it is {}x{}", img.getWidth(), img.getHeight());
+            if (img.getWidth() != w || img.getHeight() != h) {
+                LumenHud.LOG.warn("{} must be {}x{}, it is {}x{}", file.getFileName(), w, h, img.getWidth(), img.getHeight());
                 img.close();
-                return;
+                return false;
             }
-            SkinTexture.register(ID, img);
-            registered = true;
-            ok = true;
+            SkinTexture.register(id, img);
+            return true;
         } catch (Exception e) {
-            LumenHud.LOG.warn("Could not load lumen-skin.png", e);
+            LumenHud.LOG.warn("Could not load {}", file.getFileName(), e);
+            return false;
         }
     }
 }

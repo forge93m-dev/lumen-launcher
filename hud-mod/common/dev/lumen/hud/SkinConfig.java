@@ -15,6 +15,7 @@ public final class SkinConfig {
     private static final class Json {
         boolean enabled = true;
         boolean slim = false;
+        boolean cape = false;
     }
 
     private static long lastCheck;
@@ -22,11 +23,16 @@ public final class SkinConfig {
 
     public static boolean enabled;
     public static boolean slim;
+    public static boolean cape;
 
     private SkinConfig() {}
 
     public static Path png() {
         return FabricLoader.getInstance().getConfigDir().resolve("lumen-skin.png");
+    }
+
+    public static Path capePng() {
+        return FabricLoader.getInstance().getConfigDir().resolve("lumen-cape.png");
     }
 
     private static Path json() {
@@ -44,6 +50,7 @@ public final class SkinConfig {
         long stamp = 0;
         try {
             if (Files.exists(png())) stamp += Files.getLastModifiedTime(png()).toMillis();
+            if (Files.exists(capePng())) stamp += Files.getLastModifiedTime(capePng()).toMillis() * 17;
             if (Files.exists(json())) stamp += Files.getLastModifiedTime(json()).toMillis() * 31;
         } catch (Exception ignored) {
         }
@@ -51,12 +58,14 @@ public final class SkinConfig {
         lastStamp = stamp;
         enabled = false;
         slim = false;
+        cape = false;
         try {
-            if (Files.exists(json()) && Files.exists(png())) {
+            if (Files.exists(json())) {
                 Json j = new Gson().fromJson(Files.readString(json(), StandardCharsets.UTF_8), Json.class);
                 if (j != null) {
-                    enabled = j.enabled;
+                    enabled = j.enabled && Files.exists(png());
                     slim = j.slim;
+                    cape = j.cape && Files.exists(capePng());
                 }
             }
         } catch (Exception e) {

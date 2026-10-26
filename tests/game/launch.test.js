@@ -26,16 +26,17 @@ async function run(inst, { ram = 3072, ready = /Sound engine started|Created: \d
     const timer = setTimeout(() => { proc.kill(); resolve(); }, timeout);
     const stop = (why, ms) => { if (outcome !== 'timeout') return; outcome = why; clearTimeout(timer); setTimeout(() => proc.kill(), ms); };
     const watch = doctor.createWatcher((p) => { problem = p; stop('fabric-error', 500); }, () => stop('out-of-memory', 1500));
-    const proc = game.launch(ctx, { inst: i, gameDir: instances.dirOf(inst.id), account, settings: { ram } }, {
+    const proc = lowPriority(game.launch(ctx, { inst: i, gameDir: instances.dirOf(inst.id), account, settings: { ram, jvmArgs: '-XX:ActiveProcessorCount=2' } }, {
       onLog: (l) => { lines.push(l); watch(l); if (ready.test(l)) stop('started', 2500); },
       onExit: () => { clearTimeout(timer); resolve(); },
-    });
+    }));
   });
   await new Promise((r) => setTimeout(r, 2500)); // let the process release its files
   return { outcome, lines, problem };
 }
 
-const quiet = (inst) => fs.writeFileSync(path.join(instances.dirOf(inst.id), 'options.txt'), 'soundCategory_master:0.0\npauseOnLostFocus:false\nonboardAccessibility:false\ntutorialStep:none\n');
+const { LOW_GRAPHICS, lowPriority } = require('./lib');
+const quiet = (inst) => fs.writeFileSync(path.join(instances.dirOf(inst.id), 'options.txt'), LOW_GRAPHICS);
 const cleanup = (inst) => instances.remove(inst.id);
 
 for (const version of VERSIONS) {

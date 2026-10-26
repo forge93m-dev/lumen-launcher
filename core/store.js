@@ -20,6 +20,7 @@ const DEFAULTS = {
     showSnapshots: false,
     accent: '#8b5cf6',
   },
+  cloud: { url: '', share: true, others: true, token: '' }, // the Lumen skin service (core/cloud.js)
   servers: [
     { name: 'Hypixel', address: 'mc.hypixel.net' },
     { name: 'CubeCraft', address: 'play.cubecraft.net' },

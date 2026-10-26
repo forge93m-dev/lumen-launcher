@@ -13,6 +13,7 @@ const { getJson, fetchRetry } = require('./net');
 const dir = () => path.join(paths.root, 'skins');
 const indexFile = () => path.join(dir(), 'index.json');
 const fileOf = (id) => path.join(dir(), `${id}.png`);
+const capeFile = () => path.join(dir(), 'cape.png');
 const MODELS = ['classic', 'slim'];
 
 // ---------- picture handling ----------
@@ -59,6 +60,29 @@ function normalize(rgba, w, h) {
   return out;
 }
 
+// A cape is a 64x32 picture (the cape itself is the 22x17 corner); the small 22x17 files some editors write are placed in that corner.
+function normalizeCape(rgba, w, h) {
+  const out = Buffer.alloc(64 * 32 * 4);
+  if (w === 22 && h === 17) {
+    for (let y = 0; y < 17; y++) rgba.copy(out, y * 64 * 4, y * 22 * 4, (y + 1) * 22 * 4);
+    return out;
+  }
+  if (!(w === h * 2 && w >= 64 && w % 64 === 0)) throw new Error('A cape picture is 64×32 (or 22×17) pixels');
+  const k = w / 64;
+  for (let y = 0; y < 32; y++) {
+    for (let x = 0; x < 64; x++) {
+      const from = (y * k * w + x * k) * 4;
+      rgba.copy(out, (y * 64 + x) * 4, from, from + 4);
+    }
+  }
+  return out;
+}
+
+function toCapePng(buf) {
+  const { width, height, rgba } = png.decode(buf);
+  return png.encode(normalizeCape(rgba, width, height), 64, 32);
+}
+
 function toSkinPng(buf) {
   const { width, height, rgba } = png.decode(buf);
   return png.encode(normalize(rgba, width, height), 64, 64);
@@ -74,6 +98,13 @@ function readIndex() {
     return { skins: [], active: null };
   }
 }
+
+// ---------- the cape (a single slot) ----------
+
+const hasCape = () => fs.existsSync(capeFile());
+const capeBytes = () => (hasCape() ? fs.readFileSync(capeFile()) : null);
+function setCape(pngBytes) { writeFileAtomic(capeFile(), toCapePng(pngBytes)); }
+function clearCape() { fs.rmSync(capeFile(), { force: true }); }
 
 const writeIndex = (idx) => writeFileAtomic(indexFile(), JSON.stringify(idx, null, 2));
 
@@ -131,20 +162,20 @@ function remove(id) {
 
 // ---------- the game side ----------
 
-// Writes the active skin into one instance (or switches it off there). Only instances that have Lumen HUD need it.
+// Writes the active skin and cape into one instance (or switches them off there). Only instances that have Lumen HUD need it.
 function sync(instId) {
   const inst = instances.read(instId);
   if (!inst.content['lumen-hud']) return false;
   const cfg = path.join(instances.dirOf(instId), 'config');
   const idx = readIndex();
   const s = idx.skins.find((x) => x.id === idx.active);
-  if (!s) {
-    if (fs.existsSync(path.join(cfg, 'lumen-skin.json'))) writeFileAtomic(path.join(cfg, 'lumen-skin.json'), JSON.stringify({ enabled: false, slim: false }));
-    return false;
-  }
-  writeFileAtomic(path.join(cfg, 'lumen-skin.png'), fs.readFileSync(fileOf(s.id)));
-  writeFileAtomic(path.join(cfg, 'lumen-skin.json'), JSON.stringify({ enabled: true, slim: s.model === 'slim' }));
-  return true;
+  const cape = hasCape();
+  const jsonFile = path.join(cfg, 'lumen-skin.json');
+  if (!s && !cape && !fs.existsSync(jsonFile)) return false;
+  if (s) writeFileAtomic(path.join(cfg, 'lumen-skin.png'), fs.readFileSync(fileOf(s.id)));
+  if (cape) writeFileAtomic(path.join(cfg, 'lumen-cape.png'), capeBytes());
+  writeFileAtomic(jsonFile, JSON.stringify({ enabled: !!s, slim: !!s && s.model === 'slim', cape }));
+  return !!s || cape;
 }
 
 function syncAll() {
@@ -183,4 +214,4 @@ async function addFromNickname(nickname, deps = {}) {
   return add(bytes, { name: p.name, model: p.slim ? 'slim' : 'classic' });
 }
 
-module.exports = { normalize, toSkinPng, list, read, add, update, setActive, remove, sync, syncAll, fetchProfile, addFromNickname, MODELS };
+module.exports = { normalize, normalizeCape, toSkinPng, toCapePng, hasCape, capeBytes, setCape, clearCape, activeSkin: () => { const i = readIndex(); const s = i.skins.find((x) => x.id === i.active); return s ? { ...s, png: fs.readFileSync(fileOf(s.id)) } : null; }, list, read, add, update, setActive, remove, sync, syncAll, fetchProfile, addFromNickname, MODELS };

@@ -384,3 +384,5 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .skin-name { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skin-del { position: absolute; top: 4px; right: 4px; opacity: 0; width: 24px; height: 24px; }
 .skin-tile:hover .skin-del { opacity: 1; }
+.cape-prev { width: 60px; height: 96px; border-radius: 6px; image-rendering: pixelated; background: var(--panel-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; flex: none; }
+.cape-prev.none svg { width: 26px; height: 26px; opacity: .4; }

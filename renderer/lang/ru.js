@@ -140,6 +140,13 @@
     'Choose a PNG file': 'Выбрать PNG-файл', "Take a player's skin by nickname": 'Взять скин игрока по нику', 'Get skin': 'Получить скин',
     'Your skins': 'Ваши скины', 'Nothing yet.': 'Пока ничего.', 'Skin added': 'Скин добавлен', 'Type a nickname first': 'Сначала введите ник',
     'Remove this skin?': 'Удалить этот скин?', 'It is deleted from the launcher. The picture you imported it from is not touched.': 'Он удалится из лаунчера. Файл, из которого вы его импортировали, не тронется.',
+    Cape: 'Плащ', 'A 64×32 (or 22×17) PNG. It hangs on your back in Lumen HUD instances.': 'PNG 64×32 (или 22×17). Он висит у вас за спиной в сборках с Lumen HUD.',
+    'Choose a cape': 'Выбрать плащ', 'Remove the cape': 'Убрать плащ', 'No cape yet.': 'Плаща пока нет.',
+    'Lumen skin service': 'Сервис скинов Lumen', "Lets Lumen players see each other's skins and capes. Without an address, only you see yours.": 'Позволяет игрокам Lumen видеть скины и плащи друг друга. Без адреса свой скин видите только вы.',
+    Check: 'Проверить', "See other players' skins and capes": 'Видеть скины и плащи других игроков', 'The game asks the service for the players around you.': 'Игра спрашивает у сервиса про игроков рядом с вами.',
+    'Uploaded as': 'Загружается как', 'Share my skin and cape': 'Делиться своим скином и плащом', 'Add an account first.': 'Сначала добавьте аккаунт.',
+    'Saved. Press Check to test the connection.': 'Сохранено. Нажмите «Проверить», чтобы проверить соединение.', 'The service is off.': 'Сервис выключен.', 'Checking…': 'Проверяю…',
+    'https://skins.example.com': 'https://skins.example.com',
     Compass: 'Компас', Preset: 'Пресет', Default: 'По умолчанию', PvP: 'PvP', Survival: 'Выживание', Clean: 'Чистый', 'Last death': 'Место смерти', 'Durability alert': 'Предупреждение о прочности', 'Say it in chat after respawn': 'Написать в чат после возрождения', 'Warn below': 'Предупреждать ниже',
     'Toggle sneak': 'Переключаемый присед', 'Press the sneak key once to sneak, again to stop': 'Нажмите присед один раз, чтобы красться, ещё раз — чтобы остановиться',
     Freelook: 'Свободный обзор', 'Hold Left Alt to look around without turning': 'Зажмите левый Alt, чтобы осматриваться, не поворачивая персонажа',
@@ -205,6 +212,7 @@
   };
 
   const patterns = [
+    [/^Connected\. (\d+) players? on the service\.$/, (a) => `Подключено. Игроков на сервисе: ${a}.`],
     // ----- time and sizes
     [/^(\d+)m ago$/, (a) => `${a} мин назад`], [/^(\d+)h ago$/, (a) => `${a} ч назад`], [/^(\d+)d ago$/, (a) => `${a} дн. назад`],
     [/^((?:\d+h )?\d+m) played$/, (t) => `${time(t)} в игре`], [/^((?:\d+h )?\d+m)$/, (t) => time(t)], [/^([\d.]+ (?:GB|MB|KB))$/, (s) => gb(s)],

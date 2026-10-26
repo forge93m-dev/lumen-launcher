@@ -7,7 +7,11 @@ final class SkinHooks {
     private SkinHooks() {}
 
     static String describe(MinecraftClient c) {
-        var s = c.player.getSkinTextures();
-        return s.texture() + " " + s.model();
+        return describe(c.player);
+    }
+
+    static String describe(net.minecraft.client.network.AbstractClientPlayerEntity p) {
+        var s = p.getSkinTextures();
+        return s.texture() + " " + s.model() + " cape=" + s.capeTexture();
     }
 }

@@ -1,5 +1,7 @@
 // Builds every Lumen HUD variant and copies the jars into mods/ (the launcher installs them from there).
 const { spawnSync } = require('child_process');
+// Builds and tests are heavy: run them below normal priority (children inherit it) so a game being played is not disturbed.
+try { require('os').setPriority(0, require('os').constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
 const fs = require('fs');
 const path = require('path');
 
@@ -23,7 +25,7 @@ fs.mkdirSync(path.join(root, 'mods'), { recursive: true });
 for (const t of TARGETS) {
   const cwd = path.join(root, 'hud-mod', t.dir);
   console.log(`\n== ${t.jar}`);
-  const r = spawnSync(gradlew, ['build', '--no-daemon', '-q', ...t.args], { cwd, stdio: 'inherit', shell: true });
+  const r = spawnSync(gradlew, ['build', '--no-daemon', '-q', '--max-workers=2', ...t.args], { cwd, stdio: 'inherit', shell: true });
   if (r.status !== 0) process.exit(r.status || 1);
   fs.copyFileSync(path.join(cwd, 'build', 'libs', t.jar), path.join(root, 'mods', t.jar));
 }

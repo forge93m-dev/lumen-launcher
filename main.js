@@ -10,6 +10,7 @@ const mr = require('./core/modrinth');
 const modules = require('./core/modules');
 const hud = require('./core/hud');
 const skins = require('./core/skins');
+const cloud = require('./core/cloud');
 const doctor = require('./core/doctor');
 const packs = require('./core/packs');
 const migrate = require('./core/migrate');
@@ -162,8 +163,18 @@ handle('hud:reset', (id) => hud.resetConfig(id));
 
 // ---- player skins (see core/skins.js)
 const skinPayload = () => skins.list().map((s) => ({ ...s, png: `data:image/png;base64,${skins.read(s.id).toString('base64')}` }));
-const skinChanged = () => { skins.syncAll(); return skinPayload(); };
-handle('skins:list', () => skinPayload());
+const skinChanged = () => { skins.syncAll(); cloud.pushQuietly(); return { skins: skinPayload(), cape: capePayload() }; };
+const capePayload = () => (skins.hasCape() ? { has: true, png: `data:image/png;base64,${skins.capeBytes().toString('base64')}` } : { has: false });
+handle('skins:list', () => ({ skins: skinPayload(), cape: capePayload() }));
+handle('skins:pickCape', async () => {
+  const r = await dialog.showOpenDialog(win, { title: L('Choose a cape', 'Выберите плащ'), filters: [{ name: L('Cape pictures', 'Картинки плащей'), extensions: ['png'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  skins.setCape(fs.readFileSync(r.filePaths[0]));
+  skins.syncAll();
+  cloud.pushQuietly();
+  return { skins: skinPayload(), cape: capePayload() };
+});
+handle('skins:clearCape', () => { skins.clearCape(); skins.syncAll(); cloud.pushQuietly(); return { skins: skinPayload(), cape: capePayload() }; });
 handle('skins:pickImport', async () => {
   const r = await dialog.showOpenDialog(win, { title: L('Choose a skin', 'Выберите скин'), filters: [{ name: L('Skin pictures', 'Картинки скинов'), extensions: ['png'] }], properties: ['openFile'] });
   if (r.canceled || !r.filePaths[0]) return null;
@@ -173,6 +184,13 @@ handle('skins:pickImport', async () => {
 handle('skins:fromNickname', async (name) => { await skins.addFromNickname(name); return skinChanged(); });
 handle('skins:use', (id) => { skins.setActive(id); return skinChanged(); });
 handle('skins:update', (id, patch) => { skins.update(id, patch); return skinChanged(); });
+handle('cloud:get', () => cloud.view());
+handle('cloud:set', async (patch) => {
+  const v = cloud.set(patch);
+  if (v.url) await cloud.pushQuietly();
+  return v;
+});
+handle('cloud:check', (url) => cloud.check(url));
 handle('skins:remove', (id) => { skins.remove(id); return skinChanged(); });
 // Picture behind the in-game menu. The game only reads PNG, so any picture is converted (and shrunk to 1920 wide).
 const bgState = (id) => {
@@ -239,7 +257,8 @@ handle('game:launch', async (instId, server) => {
   send('game:state', { state: 'preparing', instId });
   try {
     await hud.sync(instId);
-    try { skins.sync(instId); } catch {} // the skin is a nicety, it must never stop the game from starting
+    try { skins.sync(instId); cloud.sync(instId); } catch {} // skins are a nicety, they must never stop the game from starting
+    cloud.pushQuietly(); // keeps your skin on the service up to date; the game does not wait for it
     try { serverList.sync(instId, cfg.servers || []); } catch {} // a broken servers.dat must never stop the game from starting
     const ctx = await game.prepare(inst, throttled((p) => send('game:progress', p)));
     // Mods may have been installed while assets were downloading: merge into a fresh copy, never overwrite.

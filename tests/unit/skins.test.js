@@ -80,7 +80,7 @@ test('sync: the active skin lands in instances with Lumen HUD and nowhere else; 
   skins.setActive(id);
   skins.syncAll();
   const cfg = path.join(instances.dirOf(withHud.id), 'config');
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(cfg, 'lumen-skin.json'), 'utf8')), { enabled: true, slim: true });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(cfg, 'lumen-skin.json'), 'utf8')), { enabled: true, slim: true, cape: false });
   assert.equal(png.decode(fs.readFileSync(path.join(cfg, 'lumen-skin.png'))).width, 64);
   assert.equal(fs.existsSync(path.join(instances.dirOf(plain.id), 'config', 'lumen-skin.png')), false);
   skins.setActive(null);
@@ -101,4 +101,33 @@ test('nickname: the profile is read from Mojang, only a textures.minecraft.net p
   await assert.rejects(skins.fetchProfile('Nobody', async () => { throw new Error('HTTP 404 for x'); }), /No player called Nobody/);
   const id = await skins.addFromNickname('Notch', { json: api('https://textures.minecraft.net/texture/abc123'), bytes: async () => png.encode(paint(64, 32, () => [9, 9, 9, 255]), 64, 32) });
   assert.equal(skins.list().find((s) => s.id === id).model, 'slim');
+});
+
+test('cape: 64x32, 22x17 and larger capes become a 64x32 picture; other sizes are refused', () => {
+  const small = paint(22, 17, () => [9, 8, 7, 255]);
+  const out = skins.normalizeCape(small, 22, 17);
+  assert.equal(out.length, 64 * 32 * 4);
+  assert.deepEqual(px(out, 64, 21, 16), [9, 8, 7, 255], 'the 22x17 picture sits in the corner');
+  assert.deepEqual(px(out, 64, 22, 0), [0, 0, 0, 0]);
+  const big = skins.normalizeCape(paint(128, 64, (x) => [x % 256, 0, 0, 255]), 128, 64);
+  assert.deepEqual(px(big, 64, 5, 5), [10, 0, 0, 255], 'every second pixel is taken');
+  assert.throws(() => skins.normalizeCape(Buffer.alloc(40 * 40 * 4), 40, 40), /64/);
+});
+
+test('cape: one slot; it is written next to the skin, and "cape: false" is written when it is removed', () => {
+  const inst = instances.create({ name: 'CapeHud', version: '26.3', loader: 'fabric' });
+  const j = JSON.parse(fs.readFileSync(path.join(instances.dirOf(inst.id), 'instance.json'), 'utf8'));
+  j.content['lumen-hud'] = { id: 'lumen-hud', slug: 'lumen-hud', title: 'Lumen HUD', type: 'mod', file: 'x.jar', enabled: true, needs: [] };
+  fs.writeFileSync(path.join(instances.dirOf(inst.id), 'instance.json'), JSON.stringify(j));
+  skins.setActive(null);
+  assert.equal(skins.hasCape(), false);
+  skins.setCape(png.encode(paint(64, 32, () => [250, 0, 0, 255]), 64, 32));
+  assert.equal(skins.hasCape(), true);
+  skins.syncAll();
+  const cfg = path.join(instances.dirOf(inst.id), 'config');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(cfg, 'lumen-skin.json'), 'utf8')), { enabled: false, slim: false, cape: true });
+  assert.equal(png.decode(fs.readFileSync(path.join(cfg, 'lumen-cape.png'))).height, 32);
+  skins.clearCape();
+  skins.syncAll();
+  assert.equal(JSON.parse(fs.readFileSync(path.join(cfg, 'lumen-skin.json'), 'utf8')).cape, false);
 });

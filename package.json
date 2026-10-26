@@ -13,7 +13,8 @@
     "test:ui": "node scripts/run-ui-tests.js",
     "test:all": "npm test && npm run test:ui",
     "dist": "electron-builder --win --x64",
-    "dist:dir": "electron-builder --win --x64 --dir"
+    "dist:dir": "electron-builder --win --x64 --dir",
+    "skin-service": "node server/skin-service.js"
   },
   "license": "MIT",
   "dependencies": {

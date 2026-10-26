@@ -16,71 +16,15 @@ const hud = require('../../core/hud');
 const paths = require('../../core/paths');
 const { download } = require('../../core/net');
 
-// A small picture to put behind the menu (PNG written by hand, no image library needed).
-function makePng(w, h) {
-  const zlib = require('zlib');
-  const raw = Buffer.alloc((w * 3 + 1) * h);
-  for (let y = 0; y < h; y++) {
-    raw[y * (w * 3 + 1)] = 0;
-    for (let x = 0; x < w; x++) {
-      const o = y * (w * 3 + 1) + 1 + x * 3;
-      const ring = Math.abs(Math.hypot(x - w * 0.7, y - h * 0.4) - h * 0.28) < 6;
-      raw[o] = ring ? 255 : 30 + (x * 120) / w;
-      raw[o + 1] = ring ? 200 : 20 + (y * 140) / h;
-      raw[o + 2] = ring ? 80 : 160 - (x * 60) / w;
-    }
-  }
-  const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
-  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-  const chunk = (type, data) => { const t = Buffer.concat([Buffer.from(type), data]); const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const c = Buffer.alloc(4); c.writeUInt32BE(crc(t)); return Buffer.concat([len, t, c]); };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
-}
-
 const VERSIONS = (process.env.LUMEN_TEST_VERSIONS || '26.3').split(',');
 // LUMEN_REAL_MOUSE=1: instead of the replayed events, drag with the real OS cursor (it takes over the mouse for a few seconds).
 const REAL_MOUSE = process.env.LUMEN_REAL_MOUSE === '1';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function rcon(commands) {
-  return new Promise((resolve) => {
-    const s = net.connect(25598, '127.0.0.1');
-    let id = 1;
-    const packet = (type, body) => {
-      const b = Buffer.from(body, 'utf8');
-      const buf = Buffer.alloc(14 + b.length);
-      buf.writeInt32LE(10 + b.length, 0); buf.writeInt32LE(id++, 4); buf.writeInt32LE(type, 8); b.copy(buf, 12);
-      return buf;
-    };
-    s.on('connect', async () => {
-      s.write(packet(3, 'lumen'));
-      for (const c of commands) { await sleep(250); s.write(packet(2, c)); }
-      setTimeout(() => { s.end(); resolve(); }, 500);
-    });
-    s.on('error', () => resolve());
-  });
-}
-
-async function startServer(version, javaExe) {
-  const v = JSON.parse(fs.readFileSync(path.join(paths.versions, version, `${version}.json`), 'utf8'));
-  const dir = path.join(os.tmpdir(), 'lumen-test-server', version);
-  fs.mkdirSync(dir, { recursive: true });
-  await download(v.downloads.server.url, path.join(dir, 'server.jar'), { sha1: v.downloads.server.sha1 });
-  fs.writeFileSync(path.join(dir, 'eula.txt'), 'eula=true\n');
-  fs.writeFileSync(path.join(dir, 'server.properties'), 'online-mode=false\nserver-port=25599\nlevel-type=minecraft\:flat\nspawn-protection=0\nwhite-list=false\nenforce-whitelist=false\nspawn-monsters=false\nenable-rcon=true\nrcon.password=lumen\nrcon.port=25598\nview-distance=6\n');
-  const proc = spawn(javaExe, ['-Xmx1G', '-jar', 'server.jar', 'nogui'], { cwd: dir });
-  await new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('server did not start')), 120000);
-    proc.stdout.on('data', (d) => { if (/Done \(/.test(d.toString())) { clearTimeout(t); resolve(); } });
-    proc.on('exit', () => { clearTimeout(t); reject(new Error('server exited early')); });
-  });
-  return proc;
-}
+const { sleep, rcon, startServer, makePng, lowPriority, LOW_GRAPHICS, LOW_JVM } = require('./lib');
 
 for (const version of VERSIONS) {
   test(`${version}: Lumen HUD draws in a real world and its editor opens`, { timeout: 900000 }, async () => {
     const inst = instances.create({ name: `VISUAL ${version}`, version, loader: 'fabric' });
-    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'options.txt'), 'soundCategory_master:0.0\npauseOnLostFocus:false\nonboardAccessibility:false\ntutorialStep:none\n');
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'options.txt'), LOW_GRAPHICS);
     if (process.env.LUMEN_HUD_JAR) {
       // Try a build on a version the launcher does not list yet, to find out which versions one jar really covers.
       await instances.installContent(inst.id, 'fabric-api', 'mod');
@@ -92,7 +36,8 @@ for (const version of VERSIONS) {
     fs.mkdirSync(path.join(instances.dirOf(inst.id), 'config'), { recursive: true });
     fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-menu-bg.png'), makePng(480, 270));
     fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-skin.png'), makePng(64, 64));
-    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-skin.json'), JSON.stringify({ enabled: true, slim: true }));
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-cape.png'), makePng(64, 32));
+    fs.writeFileSync(path.join(instances.dirOf(inst.id), 'config', 'lumen-skin.json'), JSON.stringify({ enabled: true, slim: true, cape: true }));
     const i2 = instances.read(inst.id);
     const ctx = await game.prepare(i2, () => {});
     await instances.patch(inst.id, (x) => { x.loaderVersion = i2.loaderVersion; });
@@ -103,8 +48,8 @@ for (const version of VERSIONS) {
     try {
       await new Promise((resolve) => {
         const timer = setTimeout(() => { proc.kill(); resolve(); }, 240000);
-        const proc = game.launch(ctx, { inst: i2, gameDir: instances.dirOf(inst.id), account: { name: 'LumenTest', uuid: '11111111-1111-3111-8111-111111111111' },
-          settings: { ram: 3072, width: 1280, height: 720, jvmArgs: REAL_MOUSE ? '-Dlumenhud.selftest=true -Dlumenhud.hold=true' : '-Dlumenhud.selftest=true' }, server: 'localhost:25599' }, {
+        const proc = lowPriority(game.launch(ctx, { inst: i2, gameDir: instances.dirOf(inst.id), account: { name: 'LumenTest', uuid: '11111111-1111-3111-8111-111111111111' },
+          settings: { ram: 2048, width: 1280, height: 720, jvmArgs: `${LOW_JVM} ${REAL_MOUSE ? '-Dlumenhud.selftest=true -Dlumenhud.hold=true' : '-Dlumenhud.selftest=true'}` }, server: 'localhost:25599' }, {
           onLog: async (l) => {
             lines.push(l);
             const m = REAL_MOUSE && !dragged && /selftest: hold fps (\d+),(\d+),(\d+),(\d+) scale=([\d.]+) editor=true/.exec(l);
@@ -124,7 +69,7 @@ for (const version of VERSIONS) {
             }
           },
           onExit: () => { clearTimeout(timer); resolve(); },
-        });
+        }));
       });
     } finally {
       server.kill();
@@ -146,7 +91,7 @@ for (const version of VERSIONS) {
     assert.match(feat(/selftest: death message=/), /message=You died at 10 64 -21 \(Nether\) last=10 64 -21 \(Nether\)/, 'the death tracker must remember where you died');
     assert.match(feat(/selftest: freelook/), /player=unchanged cam=15\.0/, 'freelook must turn the camera and leave the player alone');
     assert.match(feat(/selftest: sneak toggle/), /sneak toggle true true false/, 'toggle sneak must flip on every press');
-    assert.match(feat(/selftest: skin /), /lumenhud[:/]player_skin\S* (SLIM|slim)/i, 'your own player must wear the skin from the launcher');
+    assert.match(feat(/selftest: skin /), /lumenhud[:/]player_skin\S* (SLIM|slim) cape=\S*lumenhud[:/]player_cape/i, 'your own player must wear the skin and cape from the launcher');
     // The self-test drags the FPS element in the editor with replayed GLFW mouse events.
     const drag = lines.find((l) => /selftest: drag/.test(l));
     assert.ok(drag && /drag OK/.test(drag), `dragging an element in the editor must work: ${drag || 'no drag result in the log'}`);

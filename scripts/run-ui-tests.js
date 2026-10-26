@@ -1,5 +1,7 @@
 // Runs every tests/ui/*.test.js in Electron, one at a time, and reports. Usage: npm run test:ui [name-filter]
 const { spawnSync } = require('child_process');
+// Builds and tests are heavy: run them below normal priority (children inherit it) so a game being played is not disturbed.
+try { require('os').setPriority(0, require('os').constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
 const fs = require('fs');
 const path = require('path');
 

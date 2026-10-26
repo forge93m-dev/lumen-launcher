@@ -946,7 +946,21 @@ function drawSkin(canvas, dataUrl, slim, px) {
   img.src = dataUrl;
 }
 
+function paintCape() {
+  const cv = document.querySelector('canvas[data-cape]');
+  if (!cv || !S.cape || !S.cape.has) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = cv.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.drawImage(img, 1, 1, 10, 16, 0, 0, cv.width, cv.height); // the back of the cape
+  };
+  img.src = S.cape.png;
+}
+
 function paintSkins() {
+  paintCape();
   document.querySelectorAll('canvas[data-skin]').forEach((cv) => {
     const sk = (S.skins || []).find((x) => x.id === cv.dataset.skin);
     if (sk) drawSkin(cv, sk.png, sk.model === 'slim', +cv.dataset.px);
@@ -954,7 +968,7 @@ function paintSkins() {
 }
 
 VIEWS.skin = async (page) => {
-  if (!S.skins) S.skins = await api.call('skins:list').catch(() => []);
+  if (!S.skins) { const r = await api.call('skins:list').catch(() => ({ skins: [], cape: { has: false } })); S.skins = r.skins; S.cape = r.cape; }
   if (S.view !== 'skin') return;
   const active = S.skins.find((x) => x.active);
   page.innerHTML = `
@@ -974,6 +988,14 @@ VIEWS.skin = async (page) => {
             <button class="btn primary" data-act="skin-import">${ic('image')}Choose a PNG file</button>
             <div class="search" style="width:230px">${ic('user')}<input class="input" id="skin-nick" placeholder="Take a player's skin by nickname" maxlength="16"></div>
             <button class="btn" data-act="skin-fetch">${ic('download')}Get skin</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Cape</h3><p>A 64×32 (or 22×17) PNG. It hangs on your back in Lumen HUD instances.</p>
+          <div class="row" style="gap:14px;margin-top:12px">
+            ${S.cape && S.cape.has ? '<canvas class="cape-prev" width="60" height="96" data-cape="1"></canvas>' : `<div class="cape-prev none">${ic('image')}</div>`}
+            <div class="stack" style="gap:8px"><button class="btn" data-act="cape-import">${ic('image')}Choose a cape</button>
+              ${S.cape && S.cape.has ? `<button class="btn sm" data-act="cape-clear">${ic('trash')}Remove the cape</button>` : '<div class="small muted">No cape yet.</div>'}</div>
           </div>
         </div>
         <div class="card">
@@ -1036,7 +1058,9 @@ function logHtml() {
   return `<span class="dim">${S.logs.length ? 'No lines match the filter.' : 'No output yet. Launch the game to see logs.'}</span>`;
 }
 
-VIEWS.settings = (page) => {
+VIEWS.settings = async (page) => {
+  const cl = await api.call('cloud:get').catch(() => ({ url: '', share: true, others: true, name: null }));
+  if (S.view !== 'settings') return;
   const st = S.cfg.settings;
   const maxRam = Math.max(2048, Math.min(32768, Math.floor((S.sys.totalMem - 1536) / 512) * 512));
   const pct = ((st.ram - 1024) / (maxRam - 1024)) * 100;
@@ -1053,6 +1077,16 @@ VIEWS.settings = (page) => {
             <button class="btn sm icon ghost danger" data-act="remove-account" data-id="${a.id}">${ic('trash')}</button></div>`).join('')}
           <form class="row" id="add-acc"><input class="input" name="name" placeholder="Nickname" maxlength="16" required><button class="btn primary">${ic('plus')}Add</button></form>
           <div class="small dim">Microsoft sign-in requires a registered Azure application and is planned for a future release.</div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <h3>Lumen skin service</h3><p>Lets Lumen players see each other's skins and capes. Without an address, only you see yours.</p>
+        <div class="stack">
+          <div class="row"><input class="input grow" id="cloud-url" value="${esc(cl.url)}" placeholder="https://skins.example.com" spellcheck="false"><button class="btn" data-act="cloud-check">Check</button></div>
+          <div class="small" id="cloud-status"></div>
+          <div class="opt"><div><div class="k">See other players' skins and capes</div><div class="d">The game asks the service for the players around you.</div></div><button class="switch ${cl.others ? 'on' : ''}" data-act="cloud-toggle" data-k="others"></button></div>
+          <div class="opt"><div><div class="k">Share my skin and cape</div><div class="d">${cl.name ? `Uploaded as <b data-nt>${esc(cl.name)}</b>` : 'Add an account first.'}</div></div><button class="switch ${cl.share ? 'on' : ''}" data-act="cloud-toggle" data-k="share"></button></div>
         </div>
       </div>
 
@@ -1092,6 +1126,15 @@ VIEWS.settings = (page) => {
     </div>`;
 
   paintStorage();
+  const cloudUrl = $('#cloud-url');
+  cloudUrl.addEventListener('change', async () => {
+    const st = $('#cloud-status');
+    try {
+      await api.call('cloud:set', { url: cloudUrl.value });
+      st.className = 'small muted';
+      st.textContent = cloudUrl.value.trim() ? 'Saved. Press Check to test the connection.' : 'The service is off.';
+    } catch (e) { st.className = 'small'; st.style.color = 'var(--danger, #ef4444)'; st.textContent = e.message; }
+  });
   // The language applies to the whole interface, so the window simply reloads in the new language.
   $('#lang').addEventListener('change', async (e) => { await saveCfg({ settings: { language: e.target.value } }); location.reload(); });
   const ram = $('#ram');
@@ -1910,11 +1953,27 @@ const ACTIONS = {
     hudRenderPanel();
     hudSave();
   },
+  'cloud-check': async () => {
+    const st = $('#cloud-status');
+    st.className = 'small muted';
+    st.textContent = 'Checking…';
+    try {
+      await api.call('cloud:set', { url: $('#cloud-url').value });
+      const r = await api.call('cloud:check');
+      st.style.color = 'var(--ok, #10b981)';
+      st.textContent = `Connected. ${r.profiles} player${r.profiles === 1 ? '' : 's'} on the service.`;
+    } catch (e) { st.style.color = 'var(--danger, #ef4444)'; st.textContent = e.message; }
+  },
+  'cloud-toggle': async (d, el) => {
+    const on = !el.classList.contains('on');
+    await api.call('cloud:set', { [d.k]: on });
+    el.classList.toggle('on', on);
+  },
   'skin-import': async () => {
     try {
       const r = await api.call('skins:pickImport');
       if (!r) return;
-      S.skins = r;
+      S.skins = r.skins; S.cape = r.cape;
       render();
     } catch (e) { toast(e.message, 'err'); }
   },
@@ -1923,20 +1982,29 @@ const ACTIONS = {
     const name = box && box.value.trim();
     if (!name) return toast('Type a nickname first', 'err');
     try {
-      S.skins = await api.call('skins:fromNickname', name);
+      { const r = await api.call('skins:fromNickname', name); S.skins = r.skins; S.cape = r.cape; }
       toast('Skin added');
       render();
     } catch (e) { toast(e.message, 'err'); }
   },
   'skin-use': async (d) => {
-    S.skins = await api.call('skins:use', d.id);
+    { const r = await api.call('skins:use', d.id); S.skins = r.skins; S.cape = r.cape; }
     render();
   },
-  'skin-default': async () => { S.skins = await api.call('skins:use', null); render(); },
-  'skin-model': async (d) => { S.skins = await api.call('skins:update', d.id, { model: d.k }); render(); },
+  'cape-import': async () => {
+    try {
+      const r = await api.call('skins:pickCape');
+      if (!r) return;
+      S.skins = r.skins; S.cape = r.cape;
+      render();
+    } catch (e) { toast(e.message, 'err'); }
+  },
+  'cape-clear': async () => { const r = await api.call('skins:clearCape'); S.skins = r.skins; S.cape = r.cape; render(); },
+  'skin-default': async () => { const r = await api.call('skins:use', null); S.skins = r.skins; S.cape = r.cape; render(); },
+  'skin-model': async (d) => { const r = await api.call('skins:update', d.id, { model: d.k }); S.skins = r.skins; S.cape = r.cape; render(); },
   'skin-remove': async (d) => {
     if (!(await confirmBox('Remove this skin?', 'It is deleted from the launcher. The picture you imported it from is not touched.', 'Remove'))) return;
-    S.skins = await api.call('skins:remove', d.id);
+    { const r = await api.call('skins:remove', d.id); S.skins = r.skins; S.cape = r.cape; }
     render();
   },
   'hud-preset': (d) => {

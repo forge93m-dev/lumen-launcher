@@ -176,6 +176,11 @@ public class LumenHud implements ClientModInitializer {
                 break;
             }
         }
+        if (worldTicks == 175 || worldTicks == 185) { // other players, and the skin they share through the Lumen skin service
+            for (var other : client.world.getPlayers()) {
+                if (other != client.player) LOG.info("selftest: remote {} {} at {} {} {} (me {} {} {})", other.getName().getString(), SkinHooks.describe(other), (int) other.getX(), (int) other.getY(), (int) other.getZ(), (int) client.player.getX(), (int) client.player.getY(), (int) client.player.getZ());
+            }
+        }
         if (worldTicks == 170) {
             LOG.info("selftest: skin {}", SkinHooks.describe(client));
             savedSelfPerspective = client.options.getPerspective();
