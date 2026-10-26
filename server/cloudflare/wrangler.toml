@@ -1,0 +1,10 @@
+# Lumen skin service on Cloudflare Workers. Deploy steps are in ../README.md.
+name = "lumen-skins"
+main = "worker.mjs"
+compatibility_date = "2025-01-01"
+
+# Create the storage once with:  npx wrangler kv namespace create SKINS
+# and paste the id it prints here.
+[[kv_namespaces]]
+binding = "SKINS"
+id = "REPLACE_WITH_THE_ID_FROM_THE_COMMAND_ABOVE"
