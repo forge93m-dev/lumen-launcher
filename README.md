@@ -22,6 +22,7 @@ npm start
 - **Servers in the game too** — the servers you save in the launcher are added to the game's own multiplayer list (existing entries are never changed).
 - **Screenshots** — copy to clipboard, show in folder, delete (to the Recycle Bin). **Recommended RAM** is suggested per instance from its mod count.
 - **Installed** has a filter and shows which mods need which (so nothing is deleted by mistake). **Settings → Storage** shows what takes space and frees unused game versions/Java. Uncaught errors go to `launcher.log` instead of crashing the launcher.
+- **Languages** — English and Russian (Settings → Language, or follow the system). Packs live in `renderer/lang/`; a test fails if new English text ships without a translation.
 - **Client Modules** — 30 curated toggles (Sodium, Lithium, Zoom, Iris shaders, Minimap, AppleSkin, Better F3, Dynamic Lights…), with "Enable essentials" preset.
 - **Browse** — search Modrinth mods, resource packs and shaders filtered for your instance; dependencies install automatically.
 - **Installed** — enable/disable without deleting, one-click updates, manual jar support.
@@ -36,3 +37,12 @@ Data lives in `%APPDATA%\LumenClient`. Offline accounts only for now.
 npm run build:hud
 ```
 Builds both Lumen HUD versions with Gradle + Fabric Loom and copies the jars into `mods/`, which the launcher installs into instances.
+
+## Tests
+```
+npm test          # fast, offline unit tests
+npm run test:ui   # launches the app in Electron (every page, both languages, spam-proofing)
+npm run test:net  # real Modrinth (installs, dependencies, update check, modpacks, version change)
+npm run test:game # starts the real game (downloads Minecraft on the first run)
+```
+Tests never touch your real data folder. `LUMEN_HOME` moves the data folder (portable install).

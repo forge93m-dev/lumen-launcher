@@ -96,7 +96,7 @@ handle('config:get', () => store.load());
 handle('config:set', (patch) => store.update(patch));
 handle('accounts:addOffline', (name) => store.addOfflineAccount(name));
 handle('accounts:remove', (id) => store.removeAccount(id));
-handle('sys:info', () => ({ totalMem: Math.floor(os.totalmem() / 1048576), root: paths.root, platform: process.platform, version: app.getVersion() }));
+handle('sys:info', () => ({ totalMem: Math.floor(os.totalmem() / 1048576), root: paths.root, platform: process.platform, version: app.getVersion(), locale: app.getLocale() }));
 
 // ---- versions ----
 handle('versions:list', (snapshots) => game.listVersions(snapshots));
@@ -143,7 +143,7 @@ handle('modules:list', async () => {
   try { projects = await mr.getProjects(modules.map((m) => m.slug)); } catch {}
   const own = {
     slug: hud.ID, id: hud.ID, cat: 'HUD', name: 'Lumen HUD', builtin: true, preset: true, icon: 'img/lumenhud.png',
-    desc: 'Our own HUD: FPS, CPS, keystrokes, coordinates and armor. Edit it in the HUD Editor.',
+    desc: 'Our own HUD: FPS, CPS, ping, keystrokes, coordinates, armor, potion effects and more. Edit it in the HUD Editor.',
     gameVersions: hud.GAME_VERSIONS, loaders: ['fabric'],
   };
   return [own, ...modules.map((m) => {
@@ -268,10 +268,13 @@ handle('instances:migrate', (id, version) => {
 // ---- modpacks ----
 const packStatus = throttled((t) => send('task:status', t.text), 150);
 const asStatus = (text) => packStatus({ text, done: 0, total: 0 });
-const MRPACK = [{ name: 'Modrinth modpack', extensions: ['mrpack'] }];
+// Native file dialogs are drawn by the OS, so their few texts are translated here rather than in the page.
+const isRu = () => { const l = (store.load().settings || {}).language; return l === 'ru' || (l !== 'en' && /^(ru|uk|be)/i.test(app.getLocale())); };
+const L = (en, ru) => (isRu() ? ru : en);
+const mrpackFilter = () => [{ name: L('Modrinth modpack', 'Модпак Modrinth'), extensions: ['mrpack'] }];
 // Picking a file and doing the work are separate calls so the UI only shows a progress card for the work.
 handle('pack:pickImport', async () => {
-  const r = await dialog.showOpenDialog(win, { title: 'Import modpack', filters: MRPACK, properties: ['openFile'] });
+  const r = await dialog.showOpenDialog(win, { title: L('Import modpack', 'Импорт модпака'), filters: mrpackFilter(), properties: ['openFile'] });
   return r.canceled || !r.filePaths[0] ? null : r.filePaths[0];
 });
 handle('pack:import', (file) => {
@@ -281,7 +284,7 @@ handle('pack:import', (file) => {
 handle('pack:install', (projectId) => packs.installFromModrinth(projectId, { onStatus: asStatus }));
 handle('pack:pickExport', async (id) => {
   const safeName = instances.read(id).name.replace(/[<>:"/\\|?*]+/g, '_');
-  const r = await dialog.showSaveDialog(win, { title: 'Export modpack', defaultPath: `${safeName}.mrpack`, filters: MRPACK });
+  const r = await dialog.showSaveDialog(win, { title: L('Export modpack', 'Экспорт модпака'), defaultPath: `${safeName}.mrpack`, filters: mrpackFilter() });
   return r.canceled || !r.filePath ? null : r.filePath;
 });
 handle('pack:export', async (id, file) => {

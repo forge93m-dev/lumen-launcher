@@ -348,3 +348,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 
 /* second row of small tool buttons on an instance card */
 .inst-card .actions.tools { gap: 6px; }
+
+/* labels in a row of hints must not wrap into columns when a translation is longer */
+.row.nowrap > span { white-space: nowrap; }

@@ -9,7 +9,9 @@
     "build:hud": "node scripts/build-hud.js",
     "test": "node --test \"tests/unit/*.test.js\"",
     "test:net": "node --test --test-concurrency=1 \"tests/net/*.test.js\"",
-    "test:game": "node --test --test-concurrency=1 \"tests/game/*.test.js\""
+    "test:game": "node --test --test-concurrency=1 \"tests/game/*.test.js\"",
+    "test:ui": "node scripts/run-ui-tests.js",
+    "test:all": "npm test && npm run test:ui"
   },
   "license": "MIT",
   "dependencies": {

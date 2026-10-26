@@ -184,7 +184,7 @@ function renderNav() {
   }).join('');
   const a = account();
   $('#account-chip').innerHTML = a
-    ? `<img src="${avatar(a.name)}" alt=""><div><div class="n">${esc(a.name)}</div><div class="t">${a.type === 'msa' ? 'Microsoft' : 'Offline account'}</div></div>`
+    ? `<img src="${avatar(a.name)}" alt=""><div><div class="n" data-nt>${esc(a.name)}</div><div class="t">${a.type === 'msa' ? 'Microsoft' : 'Offline account'}</div></div>`
     : `<div class="avatar" style="display:grid;place-items:center">${ic('user')}</div><div><div class="n">No account</div><div class="t">Click to add</div></div>`;
 }
 
@@ -249,7 +249,7 @@ function needInstance(page, what) {
 
 function instBar(inst) {
   return `<button class="inst-picker" data-act="pick-instance" style="height:44px;min-width:220px">${instIcon(inst, 28)}
-    <div class="grow"><div class="n">${esc(inst.name)}</div><div class="v">${esc(inst.version)} · ${loaderLabel(inst.loader)}</div></div>${ic('chevron').replace('<svg', '<svg style="width:16px;height:16px;color:var(--muted)"')}</button>`;
+    <div class="grow"><div class="n" data-nt>${esc(inst.name)}</div><div class="v">${esc(inst.version)} · ${loaderLabel(inst.loader)}</div></div>${ic('chevron').replace('<svg', '<svg style="width:16px;height:16px;color:var(--muted)"')}</button>`;
 }
 
 // ---------------- dock ----------------
@@ -347,10 +347,10 @@ async function doctorAfter(p) {
   let found = { projects: [], unknown: p.ids };
   if (p.ids.length) found = await api.call('doctor:resolve', p.instId, p.ids).catch(() => found);
   const rows = [
-    ...p.details.map((d) => `<span class="muted">${esc(d)}</span>`),
+    ...p.details.map((d) => `<span class="muted" data-nt>${esc(d)}</span>`),
     ...found.projects.map((x) => `${x.action === 'enable' ? 'Will switch on' : x.action === 'reinstall' ? 'Will download again' : 'Can install'}: <b>${esc(x.title)}</b>`),
     ...found.unknown.map((id) => `Not found on Modrinth, install manually: <b>${esc(id)}</b>`),
-    ...p.other.map((o) => esc(o)),
+    ...p.other.map((o) => `<span data-nt>${esc(o)}</span>`),
   ];
   const canFix = found.projects.length > 0;
   const m = modal(`<h2>A mod is missing</h2><p class="sub">Fabric could not start the game. The game was closed.</p>${docRows(rows.length ? rows : ['See the Console for details.'])}
@@ -408,8 +408,8 @@ function oomModal(p) {
 }
 
 function crashModal(c) {
-  const m = modal(`<h2>The game crashed</h2><p class="sub">${esc(c.description || 'Minecraft stopped unexpectedly.')}</p>
-    <p class="small dim" style="word-break:break-all">${esc(c.name)}</p>
+  const m = modal(`<h2>The game crashed</h2><p class="sub"${c.description ? ' data-nt' : ''}>${esc(c.description || 'Minecraft stopped unexpectedly.')}</p>
+    <p class="small dim" data-nt style="word-break:break-all">${esc(c.name)}</p>
     <div class="foot"><button class="btn ghost" data-r="close">Close</button><button class="btn" data-r="console">Show console</button><button class="btn primary" data-r="open">${ic('file')}Open crash report</button></div>`);
   m.addEventListener('click', (e) => {
     const b = e.target.closest('[data-r]');
@@ -444,7 +444,7 @@ VIEWS.home = (page) => {
       <div class="hero-bg" style="background-image:url('${esc(bg || '')}')"></div>
       <div class="hero-body">
         <div class="hero-kicker">${greet}, ${esc(acc ? acc.name : 'player')}</div>
-        <h1>${inst ? esc(inst.name) : 'Welcome to Lumen'}</h1>
+        <h1${inst ? ' data-nt' : ''}>${inst ? esc(inst.name) : 'Welcome to Lumen'}</h1>
         <div class="meta">${inst
           ? `<span class="badge accent">${esc(inst.version)}</span><span class="badge">${loaderLabel(inst.loader)}</span><span class="badge">${mods} modules active</span><span class="small">Last played ${ago(inst.lastPlayed)}</span>`
           : 'Create an instance, toggle modules and jump in.'}</div>
@@ -488,7 +488,7 @@ VIEWS.instances = (page) => {
         const mods = Object.values(i.content).filter((e) => e.type === 'mod').length;
         const isRunning = S.game.instId === i.id && S.game.state !== 'idle';
         return `<div class="card inst-card ${sel && sel.id === i.id ? 'selected' : ''}">
-          <div class="row">${instIcon(i)}<div style="min-width:0" class="grow"><h3>${esc(i.name)}</h3>
+          <div class="row">${instIcon(i)}<div style="min-width:0" class="grow"><h3 data-nt>${esc(i.name)}</h3>
             <div class="row" style="gap:6px;margin-top:4px"><span class="badge accent">${esc(i.version)}</span><span class="badge">${loaderLabel(i.loader)}</span>${isRunning ? '<span class="badge ok">● Running</span>' : ''}</div></div></div>
           <div class="row small muted" style="gap:14px"><span>${mods} mods</span><span>${fmtTime(i.playtime)} played</span><span>${ago(i.lastPlayed)}</span></div>
           <div class="actions">
@@ -643,8 +643,8 @@ async function openProject(id) {
     m.querySelector('.modal').innerHTML = `
       <div class="row" style="align-items:flex-start;gap:16px">
         ${p.icon_url ? `<img src="${esc(p.icon_url)}" style="width:84px;height:84px;border-radius:16px">` : ''}
-        <div class="grow"><h2>${esc(p.title)}</h2><p class="sub" style="margin-bottom:8px">${esc(p.description)}</p>
-          <div class="row wrap" style="gap:6px">${p.categories.map((c) => `<span class="badge">${esc(c)}</span>`).join('')}
+        <div class="grow"><h2 data-nt>${esc(p.title)}</h2><p class="sub" data-nt style="margin-bottom:8px">${esc(p.description)}</p>
+          <div class="row wrap" style="gap:6px">${p.categories.map((c) => `<span class="badge" data-nt>${esc(c)}</span>`).join('')}
           <span class="badge accent">${ic('download').replace('<svg', '<svg style="width:12px;height:12px"')} ${fmtNum(p.downloads)}</span></div></div>
         <button class="btn ghost icon" data-close>${ic('x')}</button>
       </div>
@@ -808,7 +808,7 @@ function contentHtml(inst, data) {
         const u = updFor(e.id);
         return `<div class="item ${e.enabled === false ? 'off' : ''}">
           ${e.icon ? `<img src="${esc(e.icon)}" alt="">` : `<div class="ph">${ic('package')}</div>`}
-          <div class="grow" style="min-width:0"><div class="row" style="gap:8px"><span class="t">${esc(e.title)}</span>
+          <div class="grow" style="min-width:0"><div class="row" style="gap:8px"><span class="t" data-nt>${esc(e.title)}</span>
             ${e.module ? '<span class="badge accent">Module</span>' : ''}${e.dependency ? '<span class="badge">Dependency</span>' : ''}${e.incompatible ? `<span class="badge warn">No ${esc(e.incompatible)} build</span>` : ''}</div>
             <div class="s">${esc(e.versionNumber)} · ${esc(e.file)}${neededBy[e.id] ? ` · needed by ${esc(neededBy[e.id].slice(0, 3).join(', '))}${neededBy[e.id].length > 3 ? ` +${neededBy[e.id].length - 3}` : ''}` : ''}</div></div>
           ${u ? `<button class="btn sm primary" data-act="update-one" data-id="${esc(e.id)}" data-type="${e.type}" title="${esc(u.from)} → ${esc(u.to)}">${ic('up')}${esc(u.to)}</button>` : ''}
@@ -819,7 +819,7 @@ function contentHtml(inst, data) {
       }).join('')}
       ${local.map((e) => `<div class="item ${e.enabled ? '' : 'off'}">
           <div class="ph">${ic('file')}</div>
-          <div class="grow" style="min-width:0"><div class="row" style="gap:8px"><span class="t">${esc(e.title)}</span><span class="badge">Local file</span></div><div class="s">Added manually</div></div>
+          <div class="grow" style="min-width:0"><div class="row" style="gap:8px"><span class="t" data-nt>${esc(e.title)}</span><span class="badge">Local file</span></div><div class="s">Added manually</div></div>
           ${useBtn(e.type, e.file, e.enabled)}
           <button class="switch ${e.enabled ? 'on' : ''}" data-act="local-toggle" data-file="${esc(e.file)}" data-type="${e.type}"></button>
           <button class="btn sm icon ghost danger" data-act="local-remove" data-file="${esc(e.file)}" data-type="${e.type}" title="Remove">${ic('trash')}</button>
@@ -878,10 +878,10 @@ function serverCard(s) {
   return `<div class="card server" id="${srvId(s.address)}">
     ${st && st.icon ? `<img src="${esc(st.icon)}" alt="">` : '<div class="ph"></div>'}
     <div class="grow" style="min-width:0">
-      <div class="row" style="gap:8px"><b>${esc(s.name)}</b><span class="dot ${st ? (online ? 'on' : 'off') : ''}"></span>
+      <div class="row" style="gap:8px"><b data-nt>${esc(s.name)}</b><span class="dot ${st ? (online ? 'on' : 'off') : ''}"></span>
         <span class="small muted">${st ? (online ? `${fmtNum(st.players.online)} / ${fmtNum(st.players.max)} online` : 'Offline') : 'Pinging…'}</span></div>
-      <div class="motd">${st && st.motd ? esc(st.motd.clean.join(' ')) : esc(s.address)}</div>
-      ${st && st.version ? `<div class="small dim">${esc(String(st.version).slice(0, 40))}</div>` : ''}
+      <div class="motd" data-nt>${st && st.motd ? esc(st.motd.clean.join(' ')) : esc(s.address)}</div>
+      ${st && st.version ? `<div class="small dim" data-nt>${esc(String(st.version).slice(0, 40))}</div>` : ''}
     </div>
     <button class="btn sm primary" data-act="join" data-addr="${esc(s.address)}" ${S.game.state !== 'idle' || !cur() ? 'disabled' : ''}>${ic('play')}Join</button>
     ${S.view === 'servers' ? `<button class="btn sm icon ghost danger" data-act="remove-server" data-i="${S.cfg.servers.indexOf(s)}" title="Remove">${ic('trash')}</button>` : ''}
@@ -984,7 +984,7 @@ VIEWS.settings = (page) => {
         <h3>Accounts</h3><p>Offline accounts work in singleplayer and on servers with online-mode off.</p>
         <div class="stack">
           ${S.cfg.accounts.map((a) => `<div class="acc ${a.id === S.cfg.selectedAccount ? 'on' : ''}">
-            <img class="avatar" src="${avatar(a.name)}" alt=""><div class="grow"><b>${esc(a.name)}</b><div class="small muted">${a.type === 'msa' ? 'Microsoft' : 'Offline'} · ${esc(a.uuid.slice(0, 8))}…</div></div>
+            <img class="avatar" src="${avatar(a.name)}" alt=""><div class="grow"><b data-nt>${esc(a.name)}</b><div class="small muted">${a.type === 'msa' ? 'Microsoft' : 'Offline'} · ${esc(a.uuid.slice(0, 8))}…</div></div>
             ${a.id === S.cfg.selectedAccount ? '<span class="badge accent">Active</span>' : `<button class="btn sm" data-act="select-account" data-id="${a.id}">Use</button>`}
             <button class="btn sm icon ghost danger" data-act="remove-account" data-id="${a.id}">${ic('trash')}</button></div>`).join('')}
           <form class="row" id="add-acc"><input class="input" name="name" placeholder="Nickname" maxlength="16" required><button class="btn primary">${ic('plus')}Add</button></form>
@@ -1007,6 +1007,7 @@ VIEWS.settings = (page) => {
       <div class="card panel">
         <h3>Launcher</h3><p>Appearance and behaviour.</p>
         <div class="stack">
+          <div class="opt"><div><div class="k">Language</div></div><select class="input" id="lang" style="width:190px"><option value="auto" ${(st.language || 'auto') === 'auto' ? 'selected' : ''}>Auto (as in system)</option><option value="en" ${st.language === 'en' ? 'selected' : ''}>English</option><option value="ru" ${st.language === 'ru' ? 'selected' : ''}>Русский</option></select></div>
           <div class="opt"><div><div class="k">Hide launcher while playing</div><div class="d">Comes back when the game closes.</div></div><button class="switch ${st.closeOnLaunch ? 'on' : ''}" data-act="setting-toggle" data-k="closeOnLaunch"></button></div>
           <div class="opt"><div><div class="k">Start in fullscreen</div><div class="d">Minecraft opens fullscreen instead of in a window.</div></div><button class="switch ${st.fullscreen ? 'on' : ''}" data-act="setting-toggle" data-k="fullscreen"></button></div>
           <div class="opt"><div><div class="k">Show snapshots</div><div class="d">Include snapshot versions when creating instances.</div></div><button class="switch ${st.showSnapshots ? 'on' : ''}" data-act="setting-toggle" data-k="showSnapshots"></button></div>
@@ -1018,7 +1019,7 @@ VIEWS.settings = (page) => {
       <div class="card panel">
         <h3>Storage</h3><p>Game files are shared between instances to save space.</p>
         <div class="stack">
-          <div class="small muted" style="word-break:break-all;user-select:text">${esc(S.sys.root)}</div>
+          <div class="small muted" data-nt style="word-break:break-all;user-select:text">${esc(S.sys.root)}</div>
           <div id="storage-box"><span class="spinner" style="width:14px;height:14px"></span> <span class="small muted">Measuring…</span></div>
           <div class="row"><button class="btn" data-act="open-data">${ic('folder')}Open data folder</button><button class="btn" data-act="open-log">${ic('file')}launcher.log</button></div>
           <div class="small dim">Lumen Client ${esc(S.sys.version)} · Not affiliated with Mojang or Microsoft.</div>
@@ -1027,6 +1028,8 @@ VIEWS.settings = (page) => {
     </div>`;
 
   paintStorage();
+  // The language applies to the whole interface, so the window simply reloads in the new language.
+  $('#lang').addEventListener('change', async (e) => { await saveCfg({ settings: { language: e.target.value } }); location.reload(); });
   const ram = $('#ram');
   ram.addEventListener('input', () => {
     $('#ram-v').textContent = `${(ram.value / 1024).toFixed(1)} GB`;
@@ -1310,7 +1313,7 @@ VIEWS.hud = async (page) => {
             <div class="mc-hotbar">${'<i></i>'.repeat(9)}</div>
           </div>
         </div>
-        <div class="row small muted" style="margin-top:10px;gap:16px">
+        <div class="row small muted nowrap" style="margin-top:10px;gap:16px">
           <span>${ic('move').replace('<svg', '<svg style="width:14px;height:14px;vertical-align:-2px"')} Drag to move</span><span>Scroll to resize</span><span>Right-click to hide</span>
           <span class="grow"></span><span>Preview: 1280×720, GUI scale 3</span>
         </div>
@@ -1481,7 +1484,7 @@ function migrateConfirm(inst, plan) {
 function pickInstance() {
   const sel = cur();
   const m = modal(`<h2>Select instance</h2><p class="sub">Used for Play, modules, browsing and servers.</p>
-    <div class="picker-list">${S.instances.map((i) => `<button data-id="${i.id}" class="${sel && sel.id === i.id ? 'on' : ''}">${instIcon(i, 36)}<div class="grow"><b>${esc(i.name)}</b><div class="small muted">${esc(i.version)} · ${loaderLabel(i.loader)}</div></div></button>`).join('')}</div>
+    <div class="picker-list">${S.instances.map((i) => `<button data-id="${i.id}" class="${sel && sel.id === i.id ? 'on' : ''}">${instIcon(i, 36)}<div class="grow"><b data-nt>${esc(i.name)}</b><div class="small muted">${esc(i.version)} · ${loaderLabel(i.loader)}</div></div></button>`).join('')}</div>
     <div class="foot"><button class="btn" data-new>${ic('plus')}New instance</button></div>`);
   m.addEventListener('click', async (e) => {
     if (e.target.closest('[data-new]')) { m.close(); return instanceModal(); }
@@ -1909,6 +1912,7 @@ $('#account-chip').addEventListener('click', () => (account() ? nav('settings') 
   S.sys = await api.call('sys:info');
   S.instances = await api.call('instances:list');
   S.game = await api.call('game:state');
+  I18N.init(S.cfg.settings.language, S.sys.locale, window.LUMEN_PACKS || {}); // before the first render
   applyAccent();
   S.enter = true;
   render();

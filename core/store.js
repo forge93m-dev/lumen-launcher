@@ -16,6 +16,7 @@ const DEFAULTS = {
     javaPath: '',
     closeOnLaunch: false,
     fullscreen: false,
+    language: 'auto', // 'auto' follows the system, or 'en' / 'ru'
     showSnapshots: false,
     accent: '#8b5cf6',
   },
