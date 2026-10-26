@@ -1287,6 +1287,8 @@ function hudRenderPanel() {
     <div class="card panel">
       <h3>Style</h3><p>Applies to every element.</p>
       <div class="stack">
+        <div><div class="k" style="font-weight:600;margin-bottom:8px">Preset</div>
+          <div class="seg">${Object.keys((S.hudInfo && S.hudInfo.presets) || {}).map((k) => `<button data-act="hud-preset" data-k="${k}">${k}</button>`).join('')}</div></div>
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Theme</div>
           <div class="seg">${[['glass', 'Glass'], ['flat', 'Flat'], ['minimal', 'Minimal']].map(([k, l]) => `<button class="${(c.theme || 'glass') === k ? 'on' : ''}" data-act="hud-theme" data-k="${k}">${l}</button>`).join('')}</div></div>
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Text colour</div>
@@ -1819,6 +1821,15 @@ const ACTIONS = {
   },
   'hud-opt': (d) => {
     S.hud.cfg[d.k] = !S.hud.cfg[d.k];
+    hudRenderPreview();
+    hudRenderPanel();
+    hudSave();
+  },
+  'hud-preset': (d) => {
+    const pr = S.hudInfo.presets[d.k];
+    if (!pr) return;
+    S.hud.cfg.theme = pr.theme;
+    for (const [id, e] of Object.entries(S.hud.cfg.elements)) e.enabled = pr.on.includes(id);
     hudRenderPreview();
     hudRenderPanel();
     hudSave();

@@ -326,9 +326,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .cstrip i { width: 1px; height: 3px; background: rgba(255, 255, 255, .5); margin-top: 3px; }
 .cdot { position: absolute; top: 13px; width: 5px; height: 5px; border-radius: 3px; }
 .chead { position: absolute; left: 90px; top: 10px; width: 1px; height: 2px; background: var(--ha); }
-.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
-.seg button { padding: 6px 14px; border-radius: 8px; font-weight: 600; color: var(--muted); }
-.seg button.on { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
 .hbox.lines div + div { margin-top: 1px; }
 .hv { color: var(--ht); }
 .ha { color: var(--ha); }

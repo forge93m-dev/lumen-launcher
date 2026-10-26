@@ -118,7 +118,7 @@ public class HudConfig {
             }
             case "memory" -> disabled(1, 0, 2, 148);
             case "session" -> disabled(1, 0, 2, 130);
-            case "server" -> disabled(0.5, 0, 0, 2);
+            case "server" -> disabled(0, 1, 2, 60);
             case "items" -> new Element(1, 0, 2, 53);
             case "target" -> new Element(0.5, 0, 0, 28);
             case "sprint" -> new Element(0, 1, 2, 40);

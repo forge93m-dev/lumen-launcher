@@ -156,3 +156,18 @@ test('hud: the launcher\'s default layout is the same as the mod\'s (HudConfig.j
     assert.deepEqual({ enabled, ax, ay, x, y }, fromJava[id], `default of "${id}"`);
   }
 });
+
+test('hud: the launcher\'s presets are the mod\'s presets (Presets.java)', () => {
+  const java = fs.readFileSync(path.join(__dirname, '..', '..', 'hud-mod', 'common', 'dev', 'lumen', 'hud', 'Presets.java'), 'utf8');
+  const names = /NAMES = \{([^}]*)\}/.exec(java)[1].split(',').map((x) => x.trim().replace(/"/g, ''));
+  assert.deepEqual(Object.keys(hud.PRESETS), names, 'same presets in the same order');
+  const body = java.slice(java.indexOf('switch (index)'));
+  const cases = [...body.matchAll(/(?:case (\d) ->|default ->) \{\s*on = set\(([^)]*)\);\s*cfg\.theme = "(\w+)";/g)];
+  assert.equal(cases.length, names.length);
+  const byIndex = {};
+  for (const m of cases) byIndex[m[1] === undefined ? 0 : +m[1]] = { on: m[2].split(',').map((x) => x.trim().replace(/"/g, '')), theme: m[3] };
+  names.forEach((n, i) => {
+    assert.equal(hud.PRESETS[n].theme, byIndex[i].theme, `${n}: theme`);
+    assert.deepEqual([...hud.PRESETS[n].on].sort(), [...byIndex[i].on].sort(), `${n}: elements`);
+  });
+});

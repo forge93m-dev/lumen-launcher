@@ -178,19 +178,19 @@ public class LumenHud implements ClientModInitializer {
                 break;
             }
         }
-        if (worldTicks == 200 || worldTicks == 260) {
+        if (worldTicks == 200 || worldTicks == 330) {
             Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
         } else if (worldTicks == 230) {
             Compat.setScreen(client, new EditScreen(true));
-        } else if (worldTicks > 230 && worldTicks < 252 && Compat.screen(client) instanceof EditScreen) {
+        } else if (worldTicks > 230 && worldTicks < 320 && Compat.screen(client) instanceof EditScreen) {
             DragProbe.tick(worldTicks - 230, Compat.mouseSink(client), client.getWindow().getGuiScale());
         }
-        if (worldTicks == 270) {
+        if (worldTicks == 345) {
             Compat.setScreen(client, new EditScreen());
-        } else if (worldTicks == 290) {
+        } else if (worldTicks == 365) {
             Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
         }
-        if (worldTicks == 310) {
+        if (worldTicks == 385) {
             client.stop();
         }
     }

@@ -129,7 +129,7 @@
     Ping: 'Пинг', Speed: 'Скорость', Clock: 'Часы', Coordinates: 'Координаты', Keystrokes: 'Клавиши', Armor: 'Броня', 'Potion effects': 'Эффекты зелий', Reach: 'Дальность удара', Combo: 'Комбо',
     Memory: 'Память', 'Session time': 'Время сессии', 'Item counter': 'Счётчик предметов', 'Target info': 'Информация о цели', 'Server address': 'Адрес сервера', 'Sprint status': 'Статус спринта',
     'Show maximum': 'Показывать максимум', Totems: 'Тотемы', 'Golden apples': 'Золотые яблоки', 'Ender pearls': 'Жемчуг Эндера', 'End crystals': 'Кристаллы Энда',
-    Compass: 'Компас', 'Last death': 'Место смерти', 'Durability alert': 'Предупреждение о прочности', 'Say it in chat after respawn': 'Написать в чат после возрождения', 'Warn below': 'Предупреждать ниже',
+    Compass: 'Компас', Preset: 'Пресет', Default: 'По умолчанию', PvP: 'PvP', Survival: 'Выживание', Clean: 'Чистый', 'Last death': 'Место смерти', 'Durability alert': 'Предупреждение о прочности', 'Say it in chat after respawn': 'Написать в чат после возрождения', 'Warn below': 'Предупреждать ниже',
     'Toggle sneak': 'Переключаемый присед', 'Press the sneak key once to sneak, again to stop': 'Нажмите присед один раз, чтобы красться, ещё раз — чтобы остановиться',
     Freelook: 'Свободный обзор', 'Hold Left Alt to look around without turning': 'Зажмите левый Alt, чтобы осматриваться, не поворачивая персонажа',
     'Smooth zoom': 'Плавный зум', Theme: 'Тема', Glass: 'Стекло', Flat: 'Плоская', Minimal: 'Минимализм',

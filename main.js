@@ -154,7 +154,7 @@ handle('modules:list', async () => {
 });
 
 // ---- Lumen HUD ----
-handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers }));
+handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers, presets: hud.PRESETS }));
 handle('hud:get', (id) => hud.getConfig(id));
 handle('hud:set', (id, cfg) => hud.setConfig(id, cfg));
 handle('hud:reset', (id) => hud.resetConfig(id));

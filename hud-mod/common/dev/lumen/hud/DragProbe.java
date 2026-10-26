@@ -15,13 +15,17 @@ public final class DragProbe {
     private static HudRenderer.Rect before;
     private static double cx;
     private static double cy;
+    private static int attempt;
+    private static int start;
+    private static boolean done;
 
     private DragProbe() {}
 
     /** Call once per tick while the editor is open; {@code t} counts ticks since it opened. */
-    public static void tick(int t, Sink in, double scale) {
+    public static void tick(int ticks, Sink in, double scale) {
         HudRenderer.Rect r = HudRenderer.RECTS.get("fps");
-        if (r == null) return;
+        if (r == null || done) return;
+        int t = ticks - start; // a drag can be lost while the game window has no focus (the machine is in use), so it is tried up to three times
         switch (t) {
             case 3 -> {
                 before = r;
@@ -36,7 +40,12 @@ public final class DragProbe {
             case 13 -> in.button(0, false);
             case 20 -> {
                 boolean moved = Math.abs(r.x() - before.x()) > 60 && Math.abs(r.y() - before.y()) > 40;
-                LumenHud.LOG.info("selftest: drag {} (fps element {},{} -> {},{})", moved ? "OK" : "FAILED", before.x(), before.y(), r.x(), r.y());
+                if (!moved && ++attempt < 3) {
+                    start = ticks + 2;
+                    return;
+                }
+                done = true;
+                LumenHud.LOG.info("selftest: drag {} after {} attempt(s) (fps element {},{} -> {},{})", moved ? "OK" : "FAILED", attempt + (moved ? 1 : 0), before.x(), before.y(), r.x(), r.y());
             }
             default -> {}
         }

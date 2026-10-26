@@ -75,7 +75,7 @@ function defaults() {
       session: { enabled: false, ax: 1, ay: 0, x: 2, y: 130, scale: 1 },
       items: { enabled: true, ax: 1, ay: 0, x: 2, y: 53, scale: 1 },
       target: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 28, scale: 1 },
-      server: { enabled: false, ax: 0.5, ay: 0, x: 0, y: 2, scale: 1 },
+      server: { enabled: false, ax: 0, ay: 1, x: 2, y: 60, scale: 1 },
       sprint: { enabled: true, ax: 0, ay: 1, x: 2, y: 40, scale: 1 },
       death: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 52, scale: 1 },
       alert: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 70, scale: 1 },
@@ -83,6 +83,14 @@ function defaults() {
     },
   };
 }
+
+// Mirrors Presets.java: which elements are on, and the theme.
+const PRESETS = {
+  Default: { theme: 'glass', on: ['fps', 'cps', 'coords', 'keystrokes', 'armor', 'ping', 'effects', 'clock', 'items', 'target', 'sprint', 'death', 'alert', 'compass'] },
+  PvP: { theme: 'flat', on: ['fps', 'cps', 'ping', 'keystrokes', 'armor', 'items', 'reach', 'combo', 'target', 'alert', 'effects'] },
+  Survival: { theme: 'glass', on: ['fps', 'coords', 'compass', 'clock', 'armor', 'effects', 'death', 'alert', 'target'] },
+  Clean: { theme: 'minimal', on: ['fps', 'coords'] },
+};
 
 const configFile = (instId) => path.join(instances.dirOf(instId), 'config', 'lumenhud.json');
 
@@ -192,4 +200,4 @@ function previewIcons() {
   return out;
 }
 
-module.exports = { ID, VERSION, GAME_VERSIONS, matchers, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };
+module.exports = { ID, VERSION, GAME_VERSIONS, matchers, PRESETS, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };

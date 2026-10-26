@@ -175,11 +175,11 @@ public class LumenHud implements ClientModInitializer {
                 break;
             }
         }
-        if (worldTicks == 200 || worldTicks == 260) {
+        if (worldTicks == 200 || worldTicks == 330) {
             ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
         } else if (worldTicks == 230) {
             client.setScreen(new EditScreen(true));
-        } else if (worldTicks > 230 && worldTicks < 252 && client.currentScreen instanceof EditScreen) {
+        } else if (worldTicks > 230 && worldTicks < 320 && client.currentScreen instanceof EditScreen) {
             long win = client.getWindow().getHandle();
             DragProbe.tick(worldTicks - 230, new DragProbe.Sink() {
                 public void move(double x, double y) {
@@ -195,12 +195,12 @@ public class LumenHud implements ClientModInitializer {
                 }
             }, client.getWindow().getScaleFactor());
         }
-        if (worldTicks == 270) {
+        if (worldTicks == 345) {
             client.setScreen(new EditScreen());
-        } else if (worldTicks == 290) {
+        } else if (worldTicks == 365) {
             ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
         }
-        if (worldTicks == 310) {
+        if (worldTicks == 385) {
             client.scheduleStop();
         }
     }
