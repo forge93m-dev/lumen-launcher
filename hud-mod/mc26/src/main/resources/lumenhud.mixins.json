@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.lumen.hud.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["MouseMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "lumenhud",
+  "version": "${version}",
+  "name": "Lumen HUD",
+  "description": "FPS, CPS, keystrokes, coordinates and armor HUD for Lumen Client. Press Right Shift to edit the layout.",
+  "authors": ["Lumen Client"],
+  "license": "MIT",
+  "icon": "assets/lumenhud/icon.png",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.lumen.hud.LumenHud"] },
+  "mixins": ["lumenhud.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": ["1.21", "1.21.1"]
+  }
+}

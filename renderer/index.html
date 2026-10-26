@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; img-src 'self' https: data: file:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'" />
+  <title>Lumen Client</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="glow g1"></div>
+  <div class="glow g2"></div>
+
+  <header id="titlebar">
+    <div class="brand"><span class="logo"></span><span>LUMEN</span><em>client</em></div>
+    <div class="drag"></div>
+    <div class="winbtns">
+      <button data-win="min" title="Minimize"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button data-win="max" title="Maximize"><svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1"/></svg></button>
+      <button data-win="close" class="close" title="Close"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+    </div>
+  </header>
+
+  <div id="app">
+    <nav id="sidebar">
+      <div class="navlist" id="navlist"></div>
+      <button class="account-chip" id="account-chip"></button>
+    </nav>
+    <main id="view"></main>
+  </div>
+
+  <div id="dock"></div>
+  <div id="toasts"></div>
+  <div id="modal-root"></div>
+  <div id="dropzone"><div class="dz-box"><b id="dz-title">Drop files to add them</b><span>Mods (.jar) · resource packs and shaders (.zip) · modpacks (.mrpack)</span></div></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

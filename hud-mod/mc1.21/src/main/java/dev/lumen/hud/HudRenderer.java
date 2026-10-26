@@ -1,0 +1,308 @@
+package dev.lumen.hud;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.Direction;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public final class HudRenderer {
+    public record Rect(int x, int y, int w, int h) {
+        public boolean contains(double px, double py) {
+            return px >= x && py >= y && px < x + w && py < y + h;
+        }
+    }
+
+    /** Screen-space bounds of every element drawn in the last frame (used by the editor). */
+    public static final Map<String, Rect> RECTS = new LinkedHashMap<>();
+    private static final int KEY = 22;
+    private static final int GAP = 2;
+    private static final int ROW = 17;
+
+    private HudRenderer() {}
+
+    public static void render(DrawContext ctx, boolean editing) {
+        MinecraftClient c = MinecraftClient.getInstance();
+        HudConfig cfg = HudConfig.get();
+        if (!editing) {
+            if (c.options.hudHidden || c.player == null || c.currentScreen instanceof EditScreen) return;
+            if (cfg.hideInDebug && c.getDebugHud().shouldShowDebugHud()) return;
+        }
+        RECTS.clear();
+        int sw = ctx.getScaledWindowWidth();
+        int sh = ctx.getScaledWindowHeight();
+        for (String id : HudConfig.IDS) {
+            HudConfig.Element el = cfg.el(id);
+            if (!el.enabled && !editing) continue;
+            int[] size = size(id, c, cfg, editing);
+            if (size == null) continue;
+            float s = (float) clamp(el.scale, 0.5, 3);
+            int w = Math.round(size[0] * s);
+            int h = Math.round(size[1] * s);
+            int x = place(el.ax, el.x, sw, w);
+            int y = place(el.ay, el.y, sh, h);
+            MatrixStack m = ctx.getMatrices();
+            m.push();
+            m.translate(x, y, 0);
+            m.scale(s, s, 1);
+            draw(id, ctx, c, cfg, size[0], size[1], editing);
+            m.pop();
+            RECTS.put(id, new Rect(x, y, w, h));
+        }
+    }
+
+    /** Converts an anchor + inward offset into a top-left coordinate, kept on screen. */
+    static int place(double anchor, double offset, int screen, int size) {
+        double a = anchor >= 0.75 ? 1 : anchor >= 0.25 ? 0.5 : 0;
+        double pos = a * (screen - size) + (a == 1 ? -offset : offset);
+        return (int) Math.round(clamp(pos, 0, Math.max(0, screen - size)));
+    }
+
+    static double clamp(double v, double lo, double hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
+    // ---------------- sizing ----------------
+
+    private static int[] size(String id, MinecraftClient c, HudConfig cfg, boolean editing) {
+        TextRenderer tr = c.textRenderer;
+        return switch (id) {
+            case "fps" -> new int[]{tr.getWidth(c.getCurrentFps() + " FPS") + 8, 15};
+            case "cps" -> new int[]{tr.getWidth(cpsText() + " CPS") + 8, 15};
+            case "coords" -> {
+                List<String[]> lines = coordLines(c, cfg);
+                int w = 0;
+                for (String[] l : lines) w = Math.max(w, tr.getWidth(l[0] + " " + l[1]));
+                yield new int[]{w + 8, lines.size() * 10 + 4};
+            }
+            case "keystrokes" -> new int[]{3 * KEY + 2 * GAP, 3 * KEY + 2 * GAP + (cfg.keystrokesSpace ? GAP + 10 : 0)};
+            case "armor" -> {
+                List<ItemStack> items = armorItems(c, cfg);
+                if (items.isEmpty()) yield editing ? new int[]{tr.getWidth("Armor") + 8, 15} : null;
+                int w = 0;
+                for (ItemStack st : items) w = Math.max(w, tr.getWidth(itemText(st, cfg)));
+                yield new int[]{20 + w + (w > 0 ? 4 : 0), items.size() * ROW + 2};
+            }
+            case "ping" -> new int[]{tr.getWidth(pingText(c) + " ms") + 8, 15};
+            case "speed" -> new int[]{tr.getWidth(SpeedTracker.text() + " b/s") + 8, 15};
+            case "clock" -> new int[]{tr.getWidth(clockText(cfg)) + 8, 15};
+            case "effects" -> {
+                List<String[]> lines = effectLines(c);
+                if (lines.isEmpty()) yield editing ? new int[]{tr.getWidth("Effects") + 8, 15} : null;
+                int w = 0;
+                for (String[] l : lines) w = Math.max(w, tr.getWidth(l[0] + " " + l[1]));
+                yield new int[]{w + 8, lines.size() * 10 + 4};
+            }
+            default -> null;
+        };
+    }
+
+    // ---------------- drawing ----------------
+
+    private static void draw(String id, DrawContext ctx, MinecraftClient c, HudConfig cfg, int w, int h, boolean editing) {
+        TextRenderer tr = c.textRenderer;
+        switch (id) {
+            case "fps" -> valueBox(ctx, tr, cfg, String.valueOf(c.getCurrentFps()), " FPS", w, h);
+            case "cps" -> valueBox(ctx, tr, cfg, cpsText(), " CPS", w, h);
+            case "coords" -> {
+                panel(ctx, cfg, w, h);
+                int y = 3;
+                for (String[] l : coordLines(c, cfg)) {
+                    text(ctx, tr, cfg, l[0], 4, y, cfg.accent());
+                    text(ctx, tr, cfg, l[1], 4 + tr.getWidth(l[0] + " "), y, cfg.text());
+                    y += 10;
+                }
+            }
+            case "keystrokes" -> keystrokes(ctx, c, tr, cfg);
+            case "armor" -> {
+                panel(ctx, cfg, w, h);
+                List<ItemStack> items = armorItems(c, cfg);
+                if (items.isEmpty()) {
+                    text(ctx, tr, cfg, "Armor", 4, 4, cfg.text());
+                    return;
+                }
+                int y = 1;
+                for (ItemStack st : items) {
+                    ctx.drawItem(st, 2, y);
+                    if (!cfg.armorDurability) ctx.drawItemInSlot(tr, st, 2, y);
+                    String t = itemText(st, cfg);
+                    if (!t.isEmpty()) text(ctx, tr, cfg, t, 20, y + 4, durabilityColor(st, cfg));
+                    y += ROW;
+                }
+            }
+            case "ping" -> valueBox(ctx, tr, cfg, pingText(c), " ms", w, h);
+            case "speed" -> valueBox(ctx, tr, cfg, SpeedTracker.text(), " b/s", w, h);
+            case "clock" -> {
+                panel(ctx, cfg, w, h);
+                text(ctx, tr, cfg, clockText(cfg), 4, 4, cfg.text());
+            }
+            case "effects" -> {
+                panel(ctx, cfg, w, h);
+                List<String[]> lines = effectLines(c);
+                if (lines.isEmpty()) {
+                    text(ctx, tr, cfg, "Effects", 4, 4, cfg.text());
+                    return;
+                }
+                int y = 3;
+                for (String[] l : lines) {
+                    text(ctx, tr, cfg, l[0], 4, y, cfg.accent());
+                    text(ctx, tr, cfg, l[1], 4 + tr.getWidth(l[0] + " "), y, cfg.text());
+                    y += 10;
+                }
+            }
+            default -> {}
+        }
+    }
+
+    private static void valueBox(DrawContext ctx, TextRenderer tr, HudConfig cfg, String value, String suffix, int w, int h) {
+        panel(ctx, cfg, w, h);
+        text(ctx, tr, cfg, value, 4, 4, cfg.text());
+        text(ctx, tr, cfg, suffix, 4 + tr.getWidth(value), 4, cfg.accent());
+    }
+
+    private static void panel(DrawContext ctx, HudConfig cfg, int w, int h) {
+        if (cfg.background) ctx.fill(0, 0, w, h, cfg.bg());
+    }
+
+    private static void text(DrawContext ctx, TextRenderer tr, HudConfig cfg, String s, int x, int y, int color) {
+        ctx.drawText(tr, s, x, y, color, cfg.shadow);
+    }
+
+    private static String cpsText() {
+        return ClickTracker.left() + " | " + ClickTracker.right();
+    }
+
+    private static List<String[]> coordLines(MinecraftClient c, HudConfig cfg) {
+        List<String[]> out = new ArrayList<>();
+        if (c.player == null) {
+            out.add(new String[]{"XYZ", "0 64 0"});
+            return out;
+        }
+        out.add(new String[]{"XYZ", (int) Math.floor(c.player.getX()) + " " + (int) Math.floor(c.player.getY()) + " " + (int) Math.floor(c.player.getZ())});
+        if (cfg.coordsFacing) {
+            Direction d = c.player.getHorizontalFacing();
+            String axis = switch (d) {
+                case NORTH -> "-Z";
+                case SOUTH -> "+Z";
+                case WEST -> "-X";
+                case EAST -> "+X";
+                default -> "";
+            };
+            out.add(new String[]{"Facing", d.asString() + " (" + axis + ")"});
+        }
+        if (cfg.coordsBiome && c.world != null) {
+            String biome = c.world.getBiome(c.player.getBlockPos()).getKey()
+                    .map(k -> k.getValue().getPath().replace('_', ' ')).orElse("unknown");
+            out.add(new String[]{"Biome", biome});
+        }
+        return out;
+    }
+
+    private static List<ItemStack> armorItems(MinecraftClient c, HudConfig cfg) {
+        List<ItemStack> out = new ArrayList<>();
+        if (c.player == null) return out;
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+            ItemStack st = c.player.getEquippedStack(slot);
+            if (!st.isEmpty()) out.add(st);
+        }
+        if (cfg.armorHeldItem && !c.player.getMainHandStack().isEmpty()) out.add(c.player.getMainHandStack());
+        return out;
+    }
+
+    private static String itemText(ItemStack st, HudConfig cfg) {
+        if (st.isDamageable() && cfg.armorDurability) return String.valueOf(st.getMaxDamage() - st.getDamage());
+        if (st.getCount() > 1) return String.valueOf(st.getCount());
+        return "";
+    }
+
+    private static int durabilityColor(ItemStack st, HudConfig cfg) {
+        if (!st.isDamageable()) return cfg.text();
+        double r = (st.getMaxDamage() - st.getDamage()) / (double) st.getMaxDamage();
+        return r > 0.5 ? 0xFF55FF55 : r > 0.2 ? 0xFFFFFF55 : 0xFFFF5555;
+    }
+
+    private static void keystrokes(DrawContext ctx, MinecraftClient c, TextRenderer tr, HudConfig cfg) {
+        var o = c.options;
+        int step = KEY + GAP;
+        key(ctx, tr, cfg, label(o.forwardKey), step, 0, KEY, KEY, o.forwardKey.isPressed(), null);
+        key(ctx, tr, cfg, label(o.leftKey), 0, step, KEY, KEY, o.leftKey.isPressed(), null);
+        key(ctx, tr, cfg, label(o.backKey), step, step, KEY, KEY, o.backKey.isPressed(), null);
+        key(ctx, tr, cfg, label(o.rightKey), 2 * step, step, KEY, KEY, o.rightKey.isPressed(), null);
+        int half = (3 * KEY + 2 * GAP - GAP) / 2;
+        key(ctx, tr, cfg, "LMB", 0, 2 * step, half, KEY, o.attackKey.isPressed(), cfg.keystrokesCps ? ClickTracker.left() + " CPS" : null);
+        key(ctx, tr, cfg, "RMB", half + GAP, 2 * step, half, KEY, o.useKey.isPressed(), cfg.keystrokesCps ? ClickTracker.right() + " CPS" : null);
+        if (cfg.keystrokesSpace) {
+            int y = 3 * step;
+            int w = 3 * KEY + 2 * GAP;
+            boolean p = o.jumpKey.isPressed();
+            ctx.fill(0, y, w, y + 10, keyBg(cfg, p));
+            ctx.fill(w / 2 - 12, y + 4, w / 2 + 12, y + 5, cfg.text());
+        }
+    }
+
+    private static int keyBg(HudConfig cfg, boolean pressed) {
+        if (pressed) return (cfg.accent() & 0x00FFFFFF) | 0xC8000000;
+        return cfg.background ? cfg.bg() : 0x30000000;
+    }
+
+    private static void key(DrawContext ctx, TextRenderer tr, HudConfig cfg, String label, int x, int y, int w, int h, boolean pressed, String sub) {
+        ctx.fill(x, y, x + w, y + h, keyBg(cfg, pressed));
+        if (sub == null) {
+            text(ctx, tr, cfg, label, x + (w - tr.getWidth(label)) / 2, y + (h - 8) / 2, cfg.text());
+            return;
+        }
+        text(ctx, tr, cfg, label, x + (w - tr.getWidth(label)) / 2, y + 3, cfg.text());
+        MatrixStack m = ctx.getMatrices();
+        m.push();
+        m.translate(x + w / 2f, y + 13, 0);
+        m.scale(0.6f, 0.6f, 1);
+        ctx.drawText(tr, sub, -tr.getWidth(sub) / 2, 0, cfg.text(), false);
+        m.pop();
+    }
+
+    private static String label(KeyBinding k) {
+        // Latin letters regardless of keyboard layout (glfwGetKeyName follows the OS layout).
+        InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(k);
+        int code = key.getCode();
+        if (key.getCategory() == InputUtil.Type.KEYSYM && code >= GLFW.GLFW_KEY_A && code <= GLFW.GLFW_KEY_Z) return String.valueOf((char) code);
+        String s = k.getBoundKeyLocalizedText().getString().toUpperCase();
+        return s.length() > 3 ? s.substring(0, 3) : s;
+    }
+
+    private static String clockText(HudConfig cfg) {
+        return java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern(cfg.clock24 ? "HH:mm" : "h:mm a", java.util.Locale.ROOT));
+    }
+
+    private static String duration(int ticks) {
+        int s = Math.max(0, ticks) / 20;
+        return String.format(java.util.Locale.ROOT, "%d:%02d", s / 60, s % 60);
+    }
+
+    private static String pingText(MinecraftClient c) {
+        if (c.getNetworkHandler() == null || c.player == null) return "0";
+        var e = c.getNetworkHandler().getPlayerListEntry(c.player.getUuid());
+        return e == null ? "-" : String.valueOf(e.getLatency());
+    }
+
+    private static List<String[]> effectLines(MinecraftClient c) {
+        List<String[]> out = new ArrayList<>();
+        if (c.player == null) return out;
+        for (var e : c.player.getStatusEffects()) {
+            String n = e.getEffectType().value().getName().getString();
+            if (e.getAmplifier() > 0) n += " " + (e.getAmplifier() + 1);
+            out.add(new String[]{n, e.isInfinite() ? "inf" : duration(e.getDuration())});
+        }
+        return out;
+    }
+}

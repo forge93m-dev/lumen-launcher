@@ -1,0 +1,54 @@
+package dev.lumen.hud;
+
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class LumenHud implements ClientModInitializer {
+    public static final Logger LOG = LoggerFactory.getLogger("Lumen HUD");
+    private static KeyBinding editKey;
+    private int ticks;
+
+    @Override
+    public void onInitializeClient() {
+        HudConfig.load();
+        editKey = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding("key.lumenhud.edit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.lumenhud"));
+
+        HudRenderCallback.EVENT.register((ctx, tickCounter) -> HudRenderer.render(ctx, false));
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (editKey.wasPressed()) {
+                if (client.currentScreen == null) client.setScreen(new EditScreen());
+            }
+            if (++ticks % 40 == 0 && !(client.currentScreen instanceof EditScreen)) HudConfig.reloadIfChanged();
+            if (client.player != null) SpeedTracker.tick(client.player.getX(), client.player.getZ());
+            else SpeedTracker.reset();
+            if (SELFTEST && client.player != null) selfTest(client);
+        });
+        LOG.info("Lumen HUD ready — press Right Shift to edit the layout");
+    }
+
+    // Launcher/dev check: -Dlumenhud.selftest=true captures the HUD and the editor, then quits.
+    private static final boolean SELFTEST = Boolean.getBoolean("lumenhud.selftest");
+    private int worldTicks;
+
+    private void selfTest(MinecraftClient client) {
+        worldTicks++;
+        if (worldTicks == 200 || worldTicks == 260) {
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
+        } else if (worldTicks == 230) {
+            client.setScreen(new EditScreen());
+        } else if (worldTicks == 280) {
+            client.scheduleStop();
+        }
+    }
+}

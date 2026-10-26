@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# Gradle output and caches (the built mod jars we ship live in mods/)
+hud-mod/*/build/
+hud-mod/*/.gradle/
+hud-mod/*/.kotlin/
+hud-mod/*/run/
+*.log

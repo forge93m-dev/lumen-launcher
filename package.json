@@ -1,0 +1,19 @@
+{
+  "name": "lumen-launcher",
+  "productName": "Lumen Client",
+  "version": "1.0.0",
+  "description": "Minecraft launcher & client with one-click modules, Modrinth browser and instances",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:hud": "node scripts/build-hud.js",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:net": "node --test --test-concurrency=1 \"tests/net/*.test.js\"",
+    "test:game": "node --test --test-concurrency=1 \"tests/game/*.test.js\""
+  },
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "electron": "^45.0.0"
+  }
+}

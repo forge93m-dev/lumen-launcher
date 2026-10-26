@@ -1,0 +1,30 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.19.3'
+}
+
+version = "${project.mod_version}+${project.jar_suffix}"
+group = 'dev.lumen'
+base { archivesName = 'lumenhud' }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'mcrange', project.mc_range
+    filesMatching('fabric.mod.json') { expand 'version': project.version, 'mcrange': project.mc_range }
+}
+
+tasks.withType(JavaCompile).configureEach { it.options.release = 25 }
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+sourceSets.main.java.srcDir '../common'
+sourceSets.main.java.srcDir "compat-${project.compat}"
