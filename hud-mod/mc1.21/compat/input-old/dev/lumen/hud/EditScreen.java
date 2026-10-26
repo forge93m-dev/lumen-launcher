@@ -2,6 +2,15 @@ package dev.lumen.hud;
 
 /** Minecraft 1.21 - 1.21.8: mouse callbacks take plain numbers. */
 public class EditScreen extends EditScreenBase {
+    public EditScreen() {
+        this(false);
+    }
+
+    /** @param layout true to open straight in the drag-to-move layout editor */
+    public EditScreen(boolean layout) {
+        super(layout);
+    }
+
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
         return press(mx, my, button) || super.mouseClicked(mx, my, button);

@@ -12,13 +12,23 @@ import java.util.Map;
 
 /** Drag elements to move, scroll to resize, right-click to hide/show. Esc saves. */
 public class EditScreen extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo", "Memory", "Session", "Items", "Target", "Server", "Sprint"};
+    private static final String[] NAMES = HudConfig.NAMES;
     private String dragging;
     private double offX;
     private double offY;
 
+    private final LumenMenu menu = new LumenMenu();
+    /** false: the module menu; true: dragging elements around. */
+    private boolean layout;
+
     public EditScreen() {
-        super(Component.literal("Lumen HUD"));
+        this(false);
+    }
+
+    /** @param layout true to open straight in the drag-to-move layout editor */
+    public EditScreen(boolean layout) {
+        super(Component.literal("Lumen"));
+        this.layout = layout;
     }
 
     @Override
@@ -30,6 +40,15 @@ public class EditScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
         super.extractRenderState(g, mouseX, mouseY, a);
         int accent = HudConfig.get().accent();
+        if (!layout) {
+            menu.render(new GfxImpl(g, font), width, height, mouseX, mouseY);
+            if (menu.wantsLayout) {
+                menu.wantsLayout = false;
+                layout = true;
+            }
+            return;
+        }
+        backButton(g, mouseX, mouseY, accent);
         g.fill(width / 2, 0, width / 2 + 1, height, 0x22FFFFFF);
         g.fill(0, height / 2, width, height / 2 + 1, 0x22FFFFFF);
 
@@ -49,6 +68,16 @@ public class EditScreen extends Screen {
         }
         g.centeredText(font, "Lumen HUD Editor", width / 2, height / 2 - 30, accent);
         g.centeredText(font, "Drag to move · Scroll to resize · Right-click to hide · Esc to save", width / 2, height / 2 - 18, 0xFFCCCCCC);
+    }
+
+    private int backX() {
+        return width / 2 - 46;
+    }
+
+    private void backButton(GuiGraphicsExtractor g, int mx, int my, int accent) {
+        boolean hot = mx >= backX() && mx < backX() + 92 && my >= 6 && my < 22;
+        Look.round(new GfxImpl(g, font), backX(), 6, 92, 16, 4, hot ? accent : Look.withAlpha(accent, 0x90));
+        g.centeredText(font, "Back to menu", width / 2, 10, 0xFFFFFFFF);
     }
 
     private static void outline(GuiGraphicsExtractor g, HudRenderer.Rect r, int c) {
@@ -73,6 +102,11 @@ public class EditScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (!layout) return menu.press(event.x(), event.y(), event.button() == InputConstants.MOUSE_BUTTON_LEFT ? 0 : event.button() == InputConstants.MOUSE_BUTTON_RIGHT ? 1 : 2) || super.mouseClicked(event, doubleClick);
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && event.x() >= backX() && event.x() < backX() + 92 && event.y() >= 6 && event.y() < 22) {
+            layout = false;
+            return true;
+        }
         String id = hovered(event.x(), event.y());
         if (id == null) return super.mouseClicked(event, doubleClick);
         if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
@@ -89,6 +123,7 @@ public class EditScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (!layout) return menu.drag(event.x(), event.y()) || super.mouseDragged(event, dx, dy);
         if (dragging == null) return super.mouseDragged(event, dx, dy);
         HudRenderer.Rect r = HudRenderer.RECTS.get(dragging);
         HudConfig.Element el = HudConfig.get().el(dragging);
@@ -114,12 +149,14 @@ public class EditScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        menu.release();
         dragging = null;
         return super.mouseReleased(event);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
+        if (!layout) return menu.scroll(mx, my, scrollY);
         String id = hovered(mx, my);
         if (id == null) return false;
         HudConfig.Element el = HudConfig.get().el(id);

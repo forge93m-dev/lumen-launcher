@@ -4,6 +4,15 @@ import net.minecraft.client.gui.Click;
 
 /** Minecraft 1.21.9 and later: mouse callbacks take a Click. */
 public class EditScreen extends EditScreenBase {
+    public EditScreen() {
+        this(false);
+    }
+
+    /** @param layout true to open straight in the drag-to-move layout editor */
+    public EditScreen(boolean layout) {
+        super(layout);
+    }
+
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         return press(click.x(), click.y(), click.button()) || super.mouseClicked(click, doubled);

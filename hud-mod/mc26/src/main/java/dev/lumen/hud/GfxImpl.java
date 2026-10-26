@@ -1,0 +1,40 @@
+package dev.lumen.hud;
+
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+
+/** {@link Gfx} on top of the 26.x GuiGraphicsExtractor. */
+final class GfxImpl implements Gfx {
+    private final GuiGraphicsExtractor g;
+    private final Font font;
+
+    GfxImpl(GuiGraphicsExtractor g, Font font) {
+        this.g = g;
+        this.font = font;
+    }
+
+    @Override
+    public void fill(int x1, int y1, int x2, int y2, int argb) {
+        g.fill(x1, y1, x2, y2, argb);
+    }
+
+    @Override
+    public void text(String s, int x, int y, int argb, boolean shadow) {
+        g.text(font, s, x, y, argb, shadow);
+    }
+
+    @Override
+    public int width(String s) {
+        return font.width(s);
+    }
+
+    @Override
+    public void clip(int x1, int y1, int x2, int y2) {
+        g.enableScissor(x1, y1, x2, y2);
+    }
+
+    @Override
+    public void unclip() {
+        g.disableScissor();
+    }
+}

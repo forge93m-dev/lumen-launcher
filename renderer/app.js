@@ -1053,13 +1053,14 @@ VIEWS.settings = (page) => {
 // Preview uses Minecraft's GUI-scaled space for 1280x720 at GUI scale 3, so offsets match in-game pixels.
 const HUD_W = 427;
 const HUD_H = 240;
-const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status' };
+const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status', death: 'Last death', alert: 'Durability alert', compass: 'Compass' };
 const HUD_OPTS = {
   coords: [['coordsFacing', 'Show facing'], ['coordsBiome', 'Show biome']],
   keystrokes: [['keystrokesCps', 'CPS under mouse buttons'], ['keystrokesSpace', 'Space bar']],
   armor: [['armorDurability', 'Durability numbers'], ['armorHeldItem', 'Held item']],
   clock: [['clock24', '24-hour format']],
   memory: [['memoryShowMax', 'Show maximum']],
+  death: [['deathChat', 'Say it in chat after respawn']],
   items: [['itemsTotems', 'Totems'], ['itemsGapples', 'Golden apples'], ['itemsPearls', 'Ender pearls'], ['itemsCrystals', 'End crystals']],
 };
 // Which versions have a Lumen HUD build is decided in core/hud.js; the page asks once at start-up.
@@ -1110,8 +1111,11 @@ function hudElementHtml(id) {
     case 'memory': return `<div class="hbox">${v(c.memoryShowMax ? '1480/4096' : '1480')}${a(' MB')}</div>`;
     case 'session': return `<div class="hbox">${v('1:12:40')}</div>`;
     case 'server': return `<div class="hbox">${v('play.example.net')}</div>`;
+    case 'compass': return `<div class="hbox compass"><div class="cstrip"><b>W</b><i></i><i></i><b class="c">N</b><i></i><i></i><b>E</b><i></i><i></i><b>S</b></div><div class="cdot" style="left:112px;background:#10b981"></div><div class="chead"></div></div>`;
+    case 'death': return `<div class="hbox">${a('Death')} ${v('-120 64 310 (Overworld)')}</div>`;
+    case 'alert': return `<div class="hbox">${`<span style="color:#ff5555">Low durability: Iron Helmet ${c.durabilityPercent}%</span>`}</div>`;
     case 'sprint': return `<div class="hbox">${a('Sprinting (toggled)')}</div>`;
-    case 'target': return `<div class="hbox">${v('Zombie')}${a('  14/20')}</div>`;
+    case 'target': return `<div class="hbox">${v('Zombie')}${a('  14/20')}<div class="hbar"><i style="width:70%"></i></div></div>`;
     case 'items': {
       const rows = [[c.itemsTotems, '#e9c46a', 2], [c.itemsGapples, '#f4a261', 5], [c.itemsPearls, '#2a9d8f', 16], [c.itemsCrystals, '#c77dff', 8]].filter((r) => r[0]);
       return `<div class="hbox armor">${rows.map(([, col, n]) => `<div class="arow"><b style="background:${col};border-radius:3px"></b><span>${n}</span></div>`).join('') || v('Items')}</div>`;
@@ -1146,6 +1150,8 @@ function hudRenderPreview() {
   root.style.setProperty('--hbg', c.background ? `rgba(0,0,0,${c.bgOpacity})` : 'transparent');
   root.style.setProperty('--hkey', c.background ? `rgba(0,0,0,${c.bgOpacity})` : 'rgba(0,0,0,.19)');
   root.classList.toggle('shadow', !!c.shadow);
+  root.classList.remove('theme-glass', 'theme-flat', 'theme-minimal');
+  root.classList.add(`theme-${c.theme || 'glass'}`);
   root.querySelectorAll('.hel').forEach((n) => n.remove());
   for (const id of Object.keys(HUD_EL)) {
     const e = c.elements[id];
@@ -1262,14 +1268,18 @@ function hudRenderPanel() {
         <div><div class="opt"><span class="k">${HUD_EL[sel]} size</span><b>${Math.round((c.elements[sel].scale || 1) * 100)}%</b></div>
           <input type="range" id="hud-scale" min="0.5" max="3" step="0.1" value="${c.elements[sel].scale || 1}" style="--p:${(((c.elements[sel].scale || 1) - 0.5) / 2.5) * 100}%;margin-top:8px"></div>
         ${(HUD_OPTS[sel] || []).map(([k, l]) => `<div class="opt"><span>${l}</span>${sw(c[k], 'hud-opt', k)}</div>`).join('')}
+        ${sel === 'alert' ? `<div><div class="opt small"><span class="muted">Warn below</span><span>${c.durabilityPercent}%</span></div><input type="range" id="hud-durability" min="5" max="50" step="1" value="${c.durabilityPercent}" style="--p:${((c.durabilityPercent - 5) / 45) * 100}%;margin-top:6px"></div>` : ''}
       </div>` : ''}
     </div>
     <div class="card panel">
       <h3>Client features</h3><p>Work in-game, no extra mods needed.</p>
       <div class="stack">
         <div class="opt"><span>Toggle sprint<div class="small dim">Keeps you sprinting while you hold W</div></span>${sw(c.toggleSprint, 'hud-opt', 'toggleSprint')}</div>
+        <div class="opt"><span>Toggle sneak<div class="small dim">Press the sneak key once to sneak, again to stop</div></span>${sw(c.toggleSneak, 'hud-opt', 'toggleSneak')}</div>
+        <div class="opt"><span>Freelook<div class="small dim">Hold Left Alt to look around without turning</div></span>${sw(c.freelook, 'hud-opt', 'freelook')}</div>
         <div class="opt"><span>Fullbright<div class="small dim">Dark caves and nights are fully lit</div></span>${sw(c.fullbright, 'hud-opt', 'fullbright')}</div>
         <div class="opt"><span>Zoom<div class="small dim">Hold C in-game to zoom in</div></span>${sw(c.zoom, 'hud-opt', 'zoom')}</div>
+        ${c.zoom ? `<div class="opt"><span>Smooth zoom</span>${sw(c.smoothZoom, 'hud-opt', 'smoothZoom')}</div>` : ''}
         ${c.zoom ? `<div><div class="opt small"><span class="muted">Zoom field of view</span><span>${c.zoomFov}°</span></div>
           <input type="range" id="hud-zoomfov" min="5" max="60" step="1" value="${c.zoomFov}" style="--p:${((c.zoomFov - 5) / 55) * 100}%;margin-top:6px"></div>` : ''}
       </div>
@@ -1277,6 +1287,8 @@ function hudRenderPanel() {
     <div class="card panel">
       <h3>Style</h3><p>Applies to every element.</p>
       <div class="stack">
+        <div><div class="k" style="font-weight:600;margin-bottom:8px">Theme</div>
+          <div class="seg">${[['glass', 'Glass'], ['flat', 'Flat'], ['minimal', 'Minimal']].map(([k, l]) => `<button class="${(c.theme || 'glass') === k ? 'on' : ''}" data-act="hud-theme" data-k="${k}">${l}</button>`).join('')}</div></div>
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Text colour</div>
           <div class="row" style="gap:6px">${colors.map((x) => `<div class="swatch sm ${c.textColor.toUpperCase() === x ? 'on' : ''}" style="background:${x};color:${x}" data-act="hud-color" data-k="textColor" data-c="${x}"></div>`).join('')}<input type="color" class="cpick" data-k="textColor" value="${esc(c.textColor)}"></div></div>
         <div><div class="k" style="font-weight:600;margin-bottom:8px">Accent colour</div>
@@ -1302,6 +1314,14 @@ function hudRenderPanel() {
     c.zoomFov = +zf.value;
     zf.style.setProperty('--p', `${((zf.value - 5) / 55) * 100}%`);
     zf.parentElement.querySelector('.opt span:last-child').textContent = `${zf.value}°`;
+    hudSave();
+  });
+  const du = $('#hud-durability');
+  if (du) du.addEventListener('input', () => {
+    c.durabilityPercent = +du.value;
+    du.style.setProperty('--p', `${((du.value - 5) / 45) * 100}%`);
+    du.parentElement.querySelector('.opt span:last-child').textContent = `${du.value}%`;
+    hudRenderPreview();
     hudSave();
   });
   const op = $('#hud-opacity');
@@ -1799,6 +1819,12 @@ const ACTIONS = {
   },
   'hud-opt': (d) => {
     S.hud.cfg[d.k] = !S.hud.cfg[d.k];
+    hudRenderPreview();
+    hudRenderPanel();
+    hudSave();
+  },
+  'hud-theme': (d) => {
+    S.hud.cfg.theme = d.k;
     hudRenderPreview();
     hudRenderPanel();
     hudSave();

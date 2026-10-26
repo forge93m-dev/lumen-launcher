@@ -27,4 +27,24 @@ public final class Stats {
     private static String trim(float v) {
         return v == Math.floor(v) ? String.valueOf((int) v) : String.format(java.util.Locale.ROOT, "%.1f", v);
     }
+
+    /** Friendly name of a dimension id such as "the_nether". */
+    public static String dimension(String path) {
+        return switch (path) {
+            case "overworld" -> "Overworld";
+            case "the_nether" -> "Nether";
+            case "the_end" -> "End";
+            default -> path.replace('_', ' ');
+        };
+    }
+
+    /** Durability left in percent (0..100). */
+    public static int durabilityPercent(int damage, int maxDamage) {
+        return maxDamage <= 0 ? 100 : Math.max(0, Math.min(100, (int) Math.round((maxDamage - damage) * 100.0 / maxDamage)));
+    }
+
+    /** True for half of every second, to make an alert blink. */
+    public static boolean blink() {
+        return System.currentTimeMillis() / 450 % 2 == 0;
+    }
 }

@@ -14,13 +14,18 @@ import java.util.Map;
  * generation, in compat/); this class only has the logic they call.
  */
 public abstract class EditScreenBase extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo", "Memory", "Session", "Items", "Target", "Server", "Sprint"};
+    private static final String[] NAMES = HudConfig.NAMES;
     private String dragging;
     private double offX;
     private double offY;
 
-    protected EditScreenBase() {
-        super(Text.literal("Lumen HUD"));
+    private final LumenMenu menu = new LumenMenu();
+    /** false: the module menu; true: dragging elements around. */
+    private boolean layout;
+
+    protected EditScreenBase(boolean layout) {
+        super(Text.literal("Lumen"));
+        this.layout = layout;
     }
 
     @Override
@@ -32,6 +37,15 @@ public abstract class EditScreenBase extends Screen {
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta);
         int accent = HudConfig.get().accent();
+        if (!layout) {
+            menu.render(new GfxImpl(ctx, textRenderer), width, height, mouseX, mouseY);
+            if (menu.wantsLayout) {
+                menu.wantsLayout = false;
+                layout = true;
+            }
+            return;
+        }
+        backButton(ctx, mouseX, mouseY, accent);
         // centre guides
         ctx.fill(width / 2, 0, width / 2 + 1, height, 0x22FFFFFF);
         ctx.fill(0, height / 2, width, height / 2 + 1, 0x22FFFFFF);
@@ -52,6 +66,16 @@ public abstract class EditScreenBase extends Screen {
         }
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Lumen HUD Editor"), width / 2, height / 2 - 30, accent);
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Drag to move · Scroll to resize · Right-click to hide · Esc to save"), width / 2, height / 2 - 18, 0xFFCCCCCC);
+    }
+
+    private int backX() {
+        return width / 2 - 46;
+    }
+
+    private void backButton(DrawContext ctx, int mx, int my, int accent) {
+        boolean hot = mx >= backX() && mx < backX() + 92 && my >= 6 && my < 22;
+        Look.round(new GfxImpl(ctx, textRenderer), backX(), 6, 92, 16, 4, hot ? accent : Look.withAlpha(accent, 0x90));
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Back to menu"), width / 2, 10, 0xFFFFFFFF);
     }
 
     private static void outline(DrawContext ctx, HudRenderer.Rect r, int c) {
@@ -76,6 +100,11 @@ public abstract class EditScreenBase extends Screen {
 
     /** Returns true when the click was on an element (and handled). */
     protected boolean press(double mx, double my, int button) {
+        if (!layout) return menu.press(mx, my, button);
+        if (button == 0 && mx >= backX() && mx < backX() + 92 && my >= 6 && my < 22) {
+            layout = false;
+            return true;
+        }
         String id = hovered(mx, my);
         if (id == null) return false;
         if (button == 1) {
@@ -91,6 +120,7 @@ public abstract class EditScreenBase extends Screen {
     }
 
     protected boolean drag(double mx, double my) {
+        if (!layout) return menu.drag(mx, my);
         if (dragging == null) return false;
         HudRenderer.Rect r = HudRenderer.RECTS.get(dragging);
         HudConfig.Element el = HudConfig.get().el(dragging);
@@ -115,10 +145,12 @@ public abstract class EditScreenBase extends Screen {
     }
 
     protected void release() {
+        menu.release();
         dragging = null;
     }
 
     protected boolean scroll(double mx, double my, double vertical) {
+        if (!layout) return menu.scroll(mx, my, vertical);
         String id = hovered(mx, my);
         if (id == null) return false;
         HudConfig.Element el = HudConfig.get().el(id);

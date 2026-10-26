@@ -12,7 +12,16 @@ final class Keys {
         return new KeyBinding("key.lumenhud.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, "category.lumenhud");
     }
 
+    static KeyBinding freelookKey() {
+        return new KeyBinding("key.lumenhud.freelook", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.lumenhud");
+    }
+
     static KeyBinding editKey() {
         return new KeyBinding("key.lumenhud.edit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.lumenhud");
+    }
+
+    /** Whether the key is held on the keyboard right now, whatever the game thinks the binding's state is. */
+    static boolean physicallyDown(net.minecraft.client.MinecraftClient c, int code) {
+        return InputUtil.isKeyPressed(c.getWindow().getHandle(), code);
     }
 }

@@ -94,7 +94,7 @@ for (const version of VERSIONS) {
               started = true;
               await sleep(2000);
               await rcon(['whitelist off', 'clear LumenTest', 'execute at LumenTest run summon zombie ~ ~ ~2 {NoAI:1b,Silent:1b,Invulnerable:1b,PersistenceRequired:1b}', 'effect give LumenTest speed 300 1', 'effect give LumenTest night_vision 90 0', 'effect give LumenTest regeneration 25 2',
-                'give LumenTest totem_of_undying 2', 'give LumenTest golden_apple 5', 'give LumenTest ender_pearl 16', 'item replace entity LumenTest armor.head with diamond_helmet[damage=300]', 'item replace entity LumenTest armor.chest with iron_chestplate',
+                'give LumenTest totem_of_undying 2', 'give LumenTest golden_apple 5', 'give LumenTest ender_pearl 16', 'item replace entity LumenTest armor.head with diamond_helmet[damage=1500]', 'item replace entity LumenTest armor.chest with iron_chestplate',
                 'item replace entity LumenTest weapon.mainhand with netherite_sword', 'time set day']);
             }
           },
@@ -118,15 +118,18 @@ for (const version of VERSIONS) {
     assert.match(feat(/selftest: zoom fov=/), /fov=30(?!\d)/, 'zoom must narrow the field of view');
     const restored = /restored fov=(\d+) gamma=([\d.]+)/.exec(feat(/selftest: restored/));
     assert.ok(restored && +restored[1] > 30 && +restored[2] < 5, `fov and gamma must be given back: ${feat(/selftest: restored/)}`);
+    assert.match(feat(/selftest: death message=/), /message=You died at 10 64 -21 \(Nether\) last=10 64 -21 \(Nether\)/, 'the death tracker must remember where you died');
+    assert.match(feat(/selftest: freelook/), /player=unchanged cam=15\.0/, 'freelook must turn the camera and leave the player alone');
+    assert.match(feat(/selftest: sneak toggle/), /sneak toggle true true false/, 'toggle sneak must flip on every press');
     // The self-test drags the FPS element in the editor with replayed GLFW mouse events.
     const drag = lines.find((l) => /selftest: drag/.test(l));
     assert.ok(drag && /drag OK/.test(drag), `dragging an element in the editor must work: ${drag || 'no drag result in the log'}`);
     const shots = path.join(instances.dirOf(inst.id), 'screenshots');
     const files = fs.existsSync(shots) ? fs.readdirSync(shots).filter((f) => f.endsWith('.png')) : [];
-    assert.equal(files.length, 2, `the self-test should have taken two screenshots (HUD, editor); log tail:\n${lines.slice(-8).join('\n')}`);
+    assert.equal(files.length, 3, `the self-test should have taken three screenshots (HUD, layout editor, menu); log tail:\n${lines.slice(-8).join('\n')}`);
     if (process.env.LUMEN_SHOTS) {
       fs.mkdirSync(process.env.LUMEN_SHOTS, { recursive: true });
-      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${i === 0 ? 'hud' : 'editor'}.png`)));
+      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['hud', 'editor', 'menu'][i]}.png`)));
     }
     await sleep(2500);
     await instances.remove(inst.id);

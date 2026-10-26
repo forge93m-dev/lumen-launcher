@@ -35,9 +35,20 @@ public final class HudRenderer {
     private HudRenderer() {}
 
     public static void render(GuiGraphicsExtractor g, boolean editing) {
+        render(g, editing, false);
+    }
+
+    /** The live HUD drawn behind the menu (the normal checks that hide it do not apply there). */
+    public static void preview(GuiGraphicsExtractor g) {
+        render(g, false, true);
+    }
+
+    private static void render(GuiGraphicsExtractor g, boolean editing, boolean force) {
         Minecraft c = Minecraft.getInstance();
         HudConfig cfg = HudConfig.get();
-        if (!editing) {
+        Anim.frame();
+        LumenHud.zoomFrame(c);
+        if (!editing && !force) {
             if (Compat.hudHidden(c) || c.player == null || Compat.screen(c) instanceof EditScreen) return;
             if (cfg.hideInDebug && c.getDebugOverlay().showDebugScreen()) return;
         }
@@ -101,6 +112,17 @@ public final class HudRenderer {
             case "reach" -> new int[]{f.width(ReachTracker.text() + " blocks") + 8, 15};
             case "combo" -> new int[]{f.width(ComboTracker.text() + " combo") + 8, 15};
             case "clock" -> new int[]{f.width(clockText(cfg)) + 8, 15};
+            case "compass" -> new int[]{Compass.WIDTH, Compass.HEIGHT};
+            case "death" -> {
+                String d = DeathTracker.last();
+                if (d == null) yield editing ? new int[]{f.width("Last death") + 8, 15} : null;
+                yield new int[]{f.width("Death  " + d) + 8, 15};
+            }
+            case "alert" -> {
+                String a = alertText(c, cfg);
+                if (a == null) yield editing ? new int[]{f.width("Durability alert") + 8, 15} : null;
+                yield new int[]{f.width(a) + 8, 15};
+            }
             case "memory" -> new int[]{f.width(Stats.memory(cfg.memoryShowMax) + " MB") + 8, 15};
             case "session" -> new int[]{f.width(Stats.session()) + 8, 15};
             case "server" -> new int[]{f.width(serverText(c)) + 8, 15};
@@ -118,7 +140,7 @@ public final class HudRenderer {
             case "target" -> {
                 String[] t = target(c);
                 if (t == null) yield editing ? new int[]{f.width("Target") + 8, 15} : null;
-                yield new int[]{f.width(t[0] + (t[1].isEmpty() ? "" : "  " + t[1])) + 8, 15};
+                yield new int[]{f.width(t[0] + (t[1].isEmpty() ? "" : "  " + t[1])) + 8, t[2].isEmpty() ? 15 : 19};
             }
             case "effects" -> {
                 List<String[]> lines = effectLines(c);
@@ -172,6 +194,31 @@ public final class HudRenderer {
                 panel(g, cfg, w, h);
                 text(g, f, cfg, clockText(cfg), 4, 4, cfg.text());
             }
+            case "compass" -> {
+                var pl = c.player;
+                String dim = c.level == null ? "" : Stats.dimension(c.level.dimension().identifier().getPath());
+                double yaw = Freelook.active() ? Freelook.yaw() : pl == null ? 0 : pl.getYRot();
+                Compass.draw(new GfxImpl(g, f), cfg, yaw, pl == null ? 0 : pl.getX(), pl == null ? 0 : pl.getZ(), Waypoints.in(dim));
+            }
+            case "death" -> {
+                panel(g, cfg, w, h);
+                String d = DeathTracker.last();
+                if (d == null) {
+                    text(g, f, cfg, "Last death", 4, 4, cfg.text());
+                    return;
+                }
+                text(g, f, cfg, "Death", 4, 4, cfg.accent());
+                text(g, f, cfg, d, 4 + f.width("Death  "), 4, cfg.text());
+            }
+            case "alert" -> {
+                panel(g, cfg, w, h);
+                String a = alertText(c, cfg);
+                if (a == null) {
+                    text(g, f, cfg, "Durability alert", 4, 4, cfg.text());
+                    return;
+                }
+                text(g, f, cfg, a, 4, 4, Stats.blink() ? 0xFFFF5555 : 0xFFFFAA55);
+            }
             case "memory" -> valueBox(g, f, cfg, Stats.memory(cfg.memoryShowMax), " MB", w, h);
             case "session" -> {
                 panel(g, cfg, w, h);
@@ -208,6 +255,11 @@ public final class HudRenderer {
                 }
                 text(g, f, cfg, t[0], 4, 4, cfg.text());
                 if (!t[1].isEmpty()) text(g, f, cfg, t[1], 4 + f.width(t[0] + "  "), 4, cfg.accent());
+                if (!t[2].isEmpty()) {
+                    double ratio = Double.parseDouble(t[2]);
+                    g.fill(4, 14, w - 4, 16, 0x66000000);
+                    g.fill(4, 14, 4 + (int) Math.round((w - 8) * ratio), 16, Look.mix(0xFFE84545, 0xFF45D45B, ratio));
+                }
             }
             case "effects" -> {
                 panel(g, cfg, w, h);
@@ -234,7 +286,7 @@ public final class HudRenderer {
     }
 
     private static void panel(GuiGraphicsExtractor g, HudConfig cfg, int w, int h) {
-        if (cfg.background) g.fill(0, 0, w, h, cfg.bg());
+        Look.panel(new GfxImpl(g, Minecraft.getInstance().font), cfg, w, h);
     }
 
     private static void text(GuiGraphicsExtractor g, Font f, HudConfig cfg, String s, int x, int y, int color) {
@@ -307,18 +359,13 @@ public final class HudRenderer {
         if (cfg.keystrokesSpace) {
             int y = 3 * step;
             int w = 3 * KEY + 2 * GAP;
-            g.fill(0, y, w, y + 10, keyBg(cfg, o.keyJump.isDown()));
+            Look.key(new GfxImpl(g, f), cfg, 0, y, w, 10, Anim.ease("key:space", o.keyJump.isDown(), 9));
             g.fill(w / 2 - 12, y + 4, w / 2 + 12, y + 5, cfg.text());
         }
     }
 
-    private static int keyBg(HudConfig cfg, boolean pressed) {
-        if (pressed) return (cfg.accent() & 0x00FFFFFF) | 0xC8000000;
-        return cfg.background ? cfg.bg() : 0x30000000;
-    }
-
     private static void key(GuiGraphicsExtractor g, Font f, HudConfig cfg, String label, int x, int y, int w, int h, boolean pressed, String sub) {
-        g.fill(x, y, x + w, y + h, keyBg(cfg, pressed));
+        Look.key(new GfxImpl(g, f), cfg, x, y, w, h, Anim.ease("key:" + label + x + y, pressed, 9));
         if (sub == null) {
             text(g, f, cfg, label, x + (w - f.width(label)) / 2, y + (h - 8) / 2, cfg.text());
             return;
@@ -341,6 +388,23 @@ public final class HudRenderer {
         }
         String s = k.getTranslatedKeyMessage().getString().toUpperCase();
         return s.length() > 3 ? s.substring(0, 3) : s;
+    }
+
+    /** "Low durability: Iron Helmet 8%" for the worst worn piece or held tool at or below the limit, else null. */
+    private static String alertText(Minecraft c, HudConfig cfg) {
+        if (c.player == null) return null;
+        ItemStack worst = null;
+        int worstPct = cfg.durabilityPercent + 1;
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET, EquipmentSlot.MAINHAND}) {
+            ItemStack st = c.player.getItemBySlot(slot);
+            if (st.isEmpty() || !st.isDamageableItem()) continue;
+            int pct = Stats.durabilityPercent(st.getDamageValue(), st.getMaxDamage());
+            if (pct <= cfg.durabilityPercent && pct < worstPct) {
+                worst = st;
+                worstPct = pct;
+            }
+        }
+        return worst == null ? null : "Low durability: " + worst.getHoverName().getString() + " " + worstPct + "%";
     }
 
     private static String serverText(Minecraft c) {
@@ -381,10 +445,11 @@ public final class HudRenderer {
         if (hit instanceof EntityHitResult e) {
             var en = e.getEntity();
             String hp = en instanceof net.minecraft.world.entity.LivingEntity l ? Stats.health(l.getHealth(), l.getMaxHealth()) : "";
-            return new String[]{en.getName().getString(), hp};
+            String ratio = en instanceof net.minecraft.world.entity.LivingEntity l2 && l2.getMaxHealth() > 0 ? String.valueOf(Math.max(0, Math.min(1, l2.getHealth() / l2.getMaxHealth()))) : "";
+            return new String[]{en.getName().getString(), hp, ratio};
         }
         if (hit instanceof BlockHitResult b && hit.getType() == HitResult.Type.BLOCK) {
-            return new String[]{c.level.getBlockState(b.getBlockPos()).getBlock().getName().getString(), ""};
+            return new String[]{c.level.getBlockState(b.getBlockPos()).getBlock().getName().getString(), "", ""};
         }
         return null;
     }

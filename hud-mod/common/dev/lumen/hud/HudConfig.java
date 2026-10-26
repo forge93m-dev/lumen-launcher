@@ -36,7 +36,9 @@ public class HudConfig {
         }
     }
 
-    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint"};
+    public static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Potion effects", "Reach", "Combo", "Memory", "Session time", "Item counter", "Target info", "Server address", "Sprint status", "Last death", "Durability alert", "Compass"};
+
+    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint", "death", "alert", "compass"};
 
     public int version = 2;
     public String textColor = "#FFFFFF";
@@ -61,6 +63,16 @@ public class HudConfig {
     public boolean toggleSprint = false;
     public boolean fullbright = false;
     public boolean zoom = true;
+    public boolean smoothZoom = true;
+    /** Hold Left Alt to look around without turning. */
+    public boolean freelook = true;
+    public boolean toggleSneak = false;
+    /** Say the place of your last death in chat after respawning. */
+    public boolean deathChat = true;
+    /** The alert shows when armor or the held tool is at or below this durability. */
+    public int durabilityPercent = 10;
+    /** glass | flat | minimal */
+    public String theme = "glass";
     /** Field of view while the zoom key (C) is held. */
     public int zoomFov = 30;
     public Map<String, Element> elements = new LinkedHashMap<>();
@@ -108,8 +120,11 @@ public class HudConfig {
             case "session" -> disabled(1, 0, 2, 130);
             case "server" -> disabled(0.5, 0, 0, 2);
             case "items" -> new Element(1, 0, 2, 53);
-            case "target" -> new Element(0.5, 0, 0, 20);
+            case "target" -> new Element(0.5, 0, 0, 28);
             case "sprint" -> new Element(0, 1, 2, 40);
+            case "death" -> new Element(0.5, 0, 0, 52);
+            case "alert" -> new Element(0.5, 0, 0, 70);
+            case "compass" -> new Element(0.5, 0, 0, 2);
             case "clock" -> new Element(1, 0, 2, 2);
             case "effects" -> new Element(0, 0, 2, 110);
             default -> new Element(0, 0, 2, 2);

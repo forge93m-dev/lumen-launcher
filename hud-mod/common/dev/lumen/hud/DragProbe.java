@@ -29,12 +29,12 @@ public final class DragProbe {
                 cy = r.y() + r.h() / 2.0;
                 in.move(cx * scale, cy * scale);
             }
-            case 4 -> in.button(0, true);
-            case 5 -> in.move((cx + 40) * scale, (cy + 25) * scale);
-            case 6 -> in.move((cx + 90) * scale, (cy + 60) * scale);
-            case 7 -> in.move((cx + 140) * scale, (cy + 80) * scale);
-            case 8 -> in.button(0, false);
-            case 12 -> {
+            case 5 -> in.button(0, true);
+            case 7 -> in.move((cx + 40) * scale, (cy + 25) * scale);
+            case 9 -> in.move((cx + 90) * scale, (cy + 60) * scale);
+            case 11 -> in.move((cx + 140) * scale, (cy + 80) * scale);
+            case 13 -> in.button(0, false);
+            case 20 -> {
                 boolean moved = Math.abs(r.x() - before.x()) > 60 && Math.abs(r.y() - before.y()) > 40;
                 LumenHud.LOG.info("selftest: drag {} (fps element {},{} -> {},{})", moved ? "OK" : "FAILED", before.x(), before.y(), r.x(), r.y());
             }

@@ -2,6 +2,8 @@ package dev.lumen.hud;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -11,6 +13,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +22,9 @@ public class LumenHud implements ClientModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("Lumen HUD");
     private static KeyMapping editKey;
     private static KeyMapping zoomKey;
-    private Integer savedFov;
+    private static KeyMapping freelookKey;
+    private static net.minecraft.client.CameraType savedPerspective;
+    private static Integer savedFov;
     private int ticks;
 
     @Override
@@ -29,6 +34,23 @@ public class LumenHud implements ClientModInitializer {
         editKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lumenhud.edit", InputConstants.KEY_RSHIFT, category));
         zoomKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.lumenhud.zoom", InputConstants.KEY_C, category));
+        freelookKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.lumenhud.freelook", InputConstants.KEY_LALT, category));
+        ClientTickEvents.START_CLIENT_TICK.register(client -> toggleSneak(client));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(LumenCommands.build(new LumenCommands.Host<FabricClientCommandSource>() {
+            public void reply(FabricClientCommandSource source, String message) {
+                source.sendFeedback(Component.literal("[Lumen] " + message));
+            }
+
+            public int[] position() {
+                var p = Minecraft.getInstance().player;
+                return new int[]{(int) Math.floor(p.getX()), (int) Math.floor(p.getY()), (int) Math.floor(p.getZ())};
+            }
+
+            public String dimension() {
+                var w = Minecraft.getInstance().level;
+                return w == null ? "" : Stats.dimension(w.dimension().identifier().getPath());
+            }
+        })));
         // options.txt must never keep the zoomed FOV
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> restore(client));
 
@@ -70,17 +92,58 @@ public class LumenHud implements ClientModInitializer {
                 && !client.player.horizontalCollision && client.player.getFoodData().getFoodLevel() > 6) {
             client.player.setSprinting(true);
         }
-        boolean zooming = cfg.zoom && Compat.screen(client) == null && (zoomKey.isDown() || (SELFTEST && forceZoom));
-        if (zooming) {
-            if (savedFov == null) savedFov = o.fov().get();
-            o.fov().set((int) HudRenderer.clamp(cfg.zoomFov, 5, 110));
-        } else if (savedFov != null) {
+        zoomFrame(client);
+        boolean look = cfg.freelook && Compat.screen(client) == null && freelookKey.isDown();
+        if (look && !Freelook.active()) {
+            Freelook.begin(client.player.getYRot(), client.player.getXRot());
+            savedPerspective = o.getCameraType();
+            o.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+        } else if (!look && Freelook.active()) {
+            endFreelook(client);
+        }
+        String dim = client.level == null ? "" : Stats.dimension(client.level.dimension().identifier().getPath());
+        String msg = DeathTracker.tick(client.player.isDeadOrDying(), client.player.getX(), client.player.getY(), client.player.getZ(), dim);
+        if (msg != null && cfg.deathChat) client.player.sendSystemMessage(Component.literal("[Lumen] " + msg));
+    }
+
+    /** Runs every frame (and every tick) so the zoom eases smoothly. Zoom borrows the FOV option and gives it back. */
+    static void zoomFrame(Minecraft client) {
+        HudConfig cfg = HudConfig.get();
+        var o = client.options;
+        boolean zooming = cfg.zoom && client.player != null && Compat.screen(client) == null && (zoomKey.isDown() || (SELFTEST && forceZoom));
+        if (savedFov == null) {
+            if (!zooming) return;
+            savedFov = o.fov().get();
+            ZoomAnim.reset();
+        }
+        int fov = ZoomAnim.step(zooming, savedFov, (int) HudRenderer.clamp(cfg.zoomFov, 5, 110), cfg.smoothZoom);
+        if (fov < 0) {
             o.fov().set(savedFov);
             savedFov = null;
+        } else {
+            o.fov().set(fov);
         }
     }
 
-    private void restore(Minecraft client) {
+    private static void endFreelook(Minecraft client) {
+        Freelook.end();
+        if (savedPerspective != null) client.options.setCameraType(savedPerspective);
+        savedPerspective = null;
+    }
+
+    /** Keeps the sneak key held after it was pressed once; runs before the player's tick reads the keys. */
+    private static void toggleSneak(Minecraft client) {
+        HudConfig cfg = HudConfig.get();
+        if (!cfg.toggleSneak || client.player == null || Compat.screen(client) != null) {
+            ToggleSneak.reset();
+            return;
+        }
+        var key = client.options.keyShift;
+        if (ToggleSneak.update(Compat.physicallyDown(key))) key.setDown(true);
+    }
+
+    private static void restore(Minecraft client) {
+        if (Freelook.active()) endFreelook(client);
         if (savedFov != null) client.options.fov().set(savedFov);
         savedFov = null;
     }
@@ -89,13 +152,13 @@ public class LumenHud implements ClientModInitializer {
     private static final boolean SELFTEST = Boolean.getBoolean("lumenhud.selftest");
     private static final boolean HOLD = Boolean.getBoolean("lumenhud.hold");
     private int worldTicks;
-    private boolean forceZoom;
+    private static boolean forceZoom;
 
     private void selfTest(Minecraft client) {
         worldTicks++;
         if (!HOLD) selfTestFeatures(client);
         if (HOLD) { // -Dlumenhud.hold=true: open the editor and report where the FPS element is, so a person (or a script driving the real mouse) can drag it
-            if (worldTicks == 230) Compat.setScreen(client, new EditScreen());
+            if (worldTicks == 230) Compat.setScreen(client, new EditScreen(true));
             if (worldTicks > 230 && worldTicks % 20 == 0 && HudRenderer.RECTS.get("fps") != null) {
                 var r = HudRenderer.RECTS.get("fps");
                 LOG.info("selftest: hold fps {},{},{},{} scale={} editor={}", r.x(), r.y(), r.w(), r.h(), client.getWindow().getGuiScale(), Compat.screen(client) instanceof EditScreen);
@@ -118,11 +181,16 @@ public class LumenHud implements ClientModInitializer {
         if (worldTicks == 200 || worldTicks == 260) {
             Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
         } else if (worldTicks == 230) {
-            Compat.setScreen(client, new EditScreen());
-        } else if (worldTicks > 230 && worldTicks < 245 && Compat.screen(client) instanceof EditScreen) {
+            Compat.setScreen(client, new EditScreen(true));
+        } else if (worldTicks > 230 && worldTicks < 252 && Compat.screen(client) instanceof EditScreen) {
             DragProbe.tick(worldTicks - 230, Compat.mouseSink(client), client.getWindow().getGuiScale());
         }
-        if (worldTicks == 280) {
+        if (worldTicks == 270) {
+            Compat.setScreen(client, new EditScreen());
+        } else if (worldTicks == 290) {
+            Screenshot.grab(client.gameDirectory, Compat.mainTarget(client), msg -> LOG.info("selftest: {}", msg.getString()));
+        }
+        if (worldTicks == 310) {
             client.stop();
         }
     }
@@ -130,7 +198,23 @@ public class LumenHud implements ClientModInitializer {
     /** Switches the client features on for a moment and reports what the game actually did with them. */
     private void selfTestFeatures(Minecraft client) {
         HudConfig cfg = HudConfig.get();
-        if (worldTicks == 60) {
+        if (worldTicks == 30 && client.player != null) {
+            float before = client.player.getYRot();
+            Freelook.begin(before, client.player.getXRot());
+            client.player.turn(100, 40);
+            LOG.info("selftest: freelook player={} cam={} camPitch={}", client.player.getYRot() == before ? "unchanged" : "turned", Freelook.yaw() - before, Freelook.pitch());
+            Freelook.end();
+            boolean a = ToggleSneak.update(true);
+            boolean b = ToggleSneak.update(false);
+            boolean c = ToggleSneak.update(true);
+            ToggleSneak.reset();
+            LOG.info("selftest: sneak toggle {} {} {}", a, b, c);
+        }
+        if (worldTicks == 20) {
+            DeathTracker.tick(false, 1, 2, 3, "");
+            DeathTracker.tick(true, 10.5, 64, -20.2, "Nether");
+            LOG.info("selftest: death message={} last={}", DeathTracker.tick(false, 0, 0, 0, ""), DeathTracker.last());
+        } else if (worldTicks == 60) {
             cfg.toggleSprint = true;
             cfg.fullbright = true;
             client.options.keyUp.setDown(true);

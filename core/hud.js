@@ -53,6 +53,12 @@ function defaults() {
     fullbright: false,
     zoom: true,
     zoomFov: 30,
+    smoothZoom: true,
+    freelook: true,
+    toggleSneak: false,
+    deathChat: true,
+    durabilityPercent: 10,
+    theme: 'glass',
     elements: {
       fps: { enabled: true, ax: 0, ay: 0, x: 2, y: 2, scale: 1 },
       cps: { enabled: true, ax: 0, ay: 0, x: 2, y: 19, scale: 1 },
@@ -68,9 +74,12 @@ function defaults() {
       memory: { enabled: false, ax: 1, ay: 0, x: 2, y: 148, scale: 1 },
       session: { enabled: false, ax: 1, ay: 0, x: 2, y: 130, scale: 1 },
       items: { enabled: true, ax: 1, ay: 0, x: 2, y: 53, scale: 1 },
-      target: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 20, scale: 1 },
+      target: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 28, scale: 1 },
       server: { enabled: false, ax: 0.5, ay: 0, x: 0, y: 2, scale: 1 },
       sprint: { enabled: true, ax: 0, ay: 1, x: 2, y: 40, scale: 1 },
+      death: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 52, scale: 1 },
+      alert: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 70, scale: 1 },
+      compass: { enabled: true, ax: 0.5, ay: 0, x: 0, y: 2, scale: 1 },
     },
   };
 }

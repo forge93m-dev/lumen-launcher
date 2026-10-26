@@ -2,6 +2,8 @@ package dev.lumen.hud;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 
@@ -55,5 +57,11 @@ public final class Compat {
                 }
             }
         };
+    }
+
+    /** Whether the key is held on the keyboard right now, whatever the game thinks the binding's state is. */
+    public static boolean physicallyDown(KeyMapping k) {
+        Minecraft c = Minecraft.getInstance();
+        return InputConstants.isKeyDown(c.getWindow(), KeyMappingHelper.getBoundKeyOf(k).getValue());
     }
 }
