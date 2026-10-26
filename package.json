@@ -17,8 +17,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "adm-zip": "^0.6.1",
-    "electron": "^45.0.0"
+    "adm-zip": "^0.6.1"
   },
   "author": "Lumen Client",
   "homepage": "https://example.invalid/lumen-client",
@@ -77,5 +76,9 @@
     "portable": {
       "artifactName": "Lumen-Client-${version}-portable.${ext}"
     }
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
   }
 }
