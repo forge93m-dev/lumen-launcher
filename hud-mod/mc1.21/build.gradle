@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.19.3'
 }
 
-version = project.mod_version
+version = "${project.mod_version}${project.jar_suffix}"
 group = 'dev.lumen'
 base { archivesName = 'lumenhud' }
 
@@ -17,7 +17,8 @@ dependencies {
 
 processResources {
     inputs.property 'version', project.version
-    filesMatching('fabric.mod.json') { expand 'version': project.version }
+    inputs.property 'mcrange', project.mc_range
+    filesMatching('fabric.mod.json') { expand 'version': project.version, 'mcrange': project.mc_range }
 }
 
 tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
@@ -25,3 +26,7 @@ tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
 java { withSourcesJar() }
 
 sourceSets.main.java.srcDir '../common'
+// Things that differ between Minecraft versions live in compat/<kind>-<old|new>; gradle.properties picks one per kind.
+['matrix', 'items', 'keys', 'input'].each { kind ->
+    sourceSets.main.java.srcDir "compat/${kind}-${project.property('compat_' + kind)}"
+}

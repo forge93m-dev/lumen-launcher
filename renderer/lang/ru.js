@@ -126,7 +126,7 @@
     'Lumen HUD is our own Fabric mod. Edits save instantly and apply live, even mid-game.': 'Lumen HUD — наш собственный мод для Fabric. Изменения сохраняются сразу и применяются в игре на лету.',
     'Right Shift in-game opens the editor too': 'Right Shift в игре тоже открывает редактор', 'Saved · applies live in-game': 'Сохранено · применяется в игре сразу',
     Elements: 'Элементы', 'Drag in the preview · scroll to resize · right-click to hide.': 'Перетаскивайте в превью · колесо меняет размер · правая кнопка скрывает.',
-    Ping: 'Пинг', Speed: 'Скорость', Clock: 'Часы', Coordinates: 'Координаты', Keystrokes: 'Клавиши', Armor: 'Броня', 'Potion effects': 'Эффекты зелий',
+    Ping: 'Пинг', Speed: 'Скорость', Clock: 'Часы', Coordinates: 'Координаты', Keystrokes: 'Клавиши', Armor: 'Броня', 'Potion effects': 'Эффекты зелий', Reach: 'Дальность удара', Combo: 'Комбо',
     'Show facing': 'Показывать направление', 'Show biome': 'Показывать биом', 'CPS under mouse buttons': 'CPS под кнопками мыши', 'Space bar': 'Пробел',
     'Durability numbers': 'Цифры прочности', 'Held item': 'Предмет в руке', '24-hour format': '24-часовой формат', Style: 'Стиль',
     'Applies to every element.': 'Применяется ко всем элементам.', 'Text colour': 'Цвет текста', Background: 'Фон', Opacity: 'Непрозрачность',

@@ -2,7 +2,7 @@
   "name": "lumen-launcher",
   "productName": "Lumen Client",
   "version": "1.0.0",
-  "description": "Minecraft launcher & client with one-click modules, Modrinth browser and instances",
+  "description": "Minecraft launcher and client with one-click modules, Modrinth browser, modpacks and the Lumen HUD mod",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -11,11 +11,71 @@
     "test:net": "node --test --test-concurrency=1 \"tests/net/*.test.js\"",
     "test:game": "node --test --test-concurrency=1 \"tests/game/*.test.js\"",
     "test:ui": "node scripts/run-ui-tests.js",
-    "test:all": "npm test && npm run test:ui"
+    "test:all": "npm test && npm run test:ui",
+    "dist": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --win --x64 --dir"
   },
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.6.1",
     "electron": "^45.0.0"
+  },
+  "author": "Lumen Client",
+  "homepage": "https://example.invalid/lumen-client",
+  "build": {
+    "appId": "dev.lumen.client",
+    "productName": "Lumen Client",
+    "copyright": "Not affiliated with Mojang or Microsoft",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "core/**",
+      "renderer/**",
+      "build/icon.png",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "mods",
+        "to": "mods",
+        "filter": [
+          "*.jar"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lumen Client"
+    },
+    "portable": {
+      "artifactName": "Lumen-Client-${version}-portable.${ext}"
+    }
   }
 }

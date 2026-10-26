@@ -6,7 +6,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;
@@ -52,12 +51,11 @@ public final class HudRenderer {
             int h = Math.round(size[1] * s);
             int x = place(el.ax, el.x, sw, w);
             int y = place(el.ay, el.y, sh, h);
-            MatrixStack m = ctx.getMatrices();
-            m.push();
-            m.translate(x, y, 0);
-            m.scale(s, s, 1);
+            Matrices.push(ctx);
+            Matrices.translate(ctx, x, y);
+            Matrices.scale(ctx, s, s);
             draw(id, ctx, c, cfg, size[0], size[1], editing);
-            m.pop();
+            Matrices.pop(ctx);
             RECTS.put(id, new Rect(x, y, w, h));
         }
     }
@@ -96,6 +94,8 @@ public final class HudRenderer {
             }
             case "ping" -> new int[]{tr.getWidth(pingText(c) + " ms") + 8, 15};
             case "speed" -> new int[]{tr.getWidth(SpeedTracker.text() + " b/s") + 8, 15};
+            case "reach" -> new int[]{tr.getWidth(ReachTracker.text() + " blocks") + 8, 15};
+            case "combo" -> new int[]{tr.getWidth(ComboTracker.text() + " combo") + 8, 15};
             case "clock" -> new int[]{tr.getWidth(clockText(cfg)) + 8, 15};
             case "effects" -> {
                 List<String[]> lines = effectLines(c);
@@ -135,7 +135,7 @@ public final class HudRenderer {
                 int y = 1;
                 for (ItemStack st : items) {
                     ctx.drawItem(st, 2, y);
-                    if (!cfg.armorDurability) ctx.drawItemInSlot(tr, st, 2, y);
+                    if (!cfg.armorDurability) Items.overlay(ctx, tr, st, 2, y);
                     String t = itemText(st, cfg);
                     if (!t.isEmpty()) text(ctx, tr, cfg, t, 20, y + 4, durabilityColor(st, cfg));
                     y += ROW;
@@ -143,6 +143,8 @@ public final class HudRenderer {
             }
             case "ping" -> valueBox(ctx, tr, cfg, pingText(c), " ms", w, h);
             case "speed" -> valueBox(ctx, tr, cfg, SpeedTracker.text(), " b/s", w, h);
+            case "reach" -> valueBox(ctx, tr, cfg, ReachTracker.text(), " blocks", w, h);
+            case "combo" -> valueBox(ctx, tr, cfg, ComboTracker.text(), " combo", w, h);
             case "clock" -> {
                 panel(ctx, cfg, w, h);
                 text(ctx, tr, cfg, clockText(cfg), 4, 4, cfg.text());
@@ -263,12 +265,11 @@ public final class HudRenderer {
             return;
         }
         text(ctx, tr, cfg, label, x + (w - tr.getWidth(label)) / 2, y + 3, cfg.text());
-        MatrixStack m = ctx.getMatrices();
-        m.push();
-        m.translate(x + w / 2f, y + 13, 0);
-        m.scale(0.6f, 0.6f, 1);
+        Matrices.push(ctx);
+        Matrices.translate(ctx, x + w / 2f, y + 13);
+        Matrices.scale(ctx, 0.6f, 0.6f);
         ctx.drawText(tr, sub, -tr.getWidth(sub) / 2, 0, cfg.text(), false);
-        m.pop();
+        Matrices.pop(ctx);
     }
 
     private static String label(KeyBinding k) {

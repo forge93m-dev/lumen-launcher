@@ -38,6 +38,7 @@ function createWindow() {
     frame: false,
     backgroundColor: '#09090f',
     title: 'Lumen Client',
+    icon: path.join(__dirname, 'build', 'icon.png'),
     show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
@@ -153,6 +154,7 @@ handle('modules:list', async () => {
 });
 
 // ---- Lumen HUD ----
+handle('hud:info', () => ({ versions: hud.GAME_VERSIONS, matchers: hud.matchers }));
 handle('hud:get', (id) => hud.getConfig(id));
 handle('hud:set', (id, cfg) => hud.setConfig(id, cfg));
 handle('hud:reset', (id) => hud.resetConfig(id));

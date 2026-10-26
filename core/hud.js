@@ -8,17 +8,24 @@ const { writeFileAtomic } = require('./fsutil');
 
 const ID = 'lumen-hud';
 const VERSION = '1.0.0';
-const MODS = path.join(__dirname, '..', 'mods');
+// Installed builds ship the jars next to the app (<resources>/mods); a development checkout keeps them in ./mods.
+const packagedMods = process.resourcesPath && path.join(process.resourcesPath, 'mods');
+const MODS = packagedMods && fs.existsSync(packagedMods) ? packagedMods : path.join(__dirname, '..', 'mods');
 // One build per Minecraft API generation (sources in hud-mod/mc1.21 and hud-mod/mc26).
 const BUILDS = [
-  { match: (v) => v === '1.21' || v === '1.21.1', file: `lumenhud-${VERSION}.jar` },
-  { match: (v) => /^26\.1(\.\d+)?$/.test(v), file: `lumenhud-${VERSION}+26.1.jar` },
-  { match: (v) => /^26\.2(\.\d+)?$/.test(v), file: `lumenhud-${VERSION}+26.2.jar` },
-  { match: (v) => /^26\.3(\.\d+)?$/.test(v), file: `lumenhud-${VERSION}+26.3.jar` },
+  { re: /^1\.21(\.1)?$/, file: `lumenhud-${VERSION}.jar` },
+  { re: /^1\.21\.4$/, file: `lumenhud-${VERSION}+1.21.4.jar` },
+  { re: /^1\.21\.8$/, file: `lumenhud-${VERSION}+1.21.8.jar` },
+  { re: /^1\.21\.11$/, file: `lumenhud-${VERSION}+1.21.11.jar` },
+  { re: /^26\.1(\.\d+)?$/, file: `lumenhud-${VERSION}+26.1.jar` },
+  { re: /^26\.2(\.\d+)?$/, file: `lumenhud-${VERSION}+26.2.jar` },
+  { re: /^26\.3(\.\d+)?$/, file: `lumenhud-${VERSION}+26.3.jar` },
 ];
-const GAME_VERSIONS = ['1.21', '1.21.1', '26.1', '26.2', '26.3'];
+// For the UI (the single place that knows which versions have a build).
+const GAME_VERSIONS = ['1.21', '1.21.1', '1.21.4', '1.21.8', '1.21.11', '26.1', '26.2', '26.3'];
+const matchers = BUILDS.map((b) => b.re.source);
 
-const buildFor = (version) => BUILDS.find((b) => b.match(version));
+const buildFor = (version) => BUILDS.find((b) => b.re.test(version));
 
 // Mirrors HudConfig.java defaults.
 function defaults() {
@@ -47,6 +54,8 @@ function defaults() {
       speed: { enabled: false, ax: 0, ay: 0, x: 2, y: 91, scale: 1 },
       clock: { enabled: true, ax: 1, ay: 0, x: 2, y: 2, scale: 1 },
       effects: { enabled: true, ax: 0, ay: 0, x: 2, y: 110, scale: 1 },
+      reach: { enabled: false, ax: 1, ay: 0, x: 2, y: 19, scale: 1 },
+      combo: { enabled: false, ax: 1, ay: 0, x: 2, y: 36, scale: 1 },
     },
   };
 }
@@ -159,4 +168,4 @@ function previewIcons() {
   return out;
 }
 
-module.exports = { ID, VERSION, GAME_VERSIONS, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };
+module.exports = { ID, VERSION, GAME_VERSIONS, matchers, supports, defaults, getConfig, setConfig, resetConfig, install, sync, previewIcons };

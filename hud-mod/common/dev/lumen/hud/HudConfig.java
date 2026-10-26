@@ -36,7 +36,7 @@ public class HudConfig {
         }
     }
 
-    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects"};
+    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo"};
 
     public int version = 2;
     public String textColor = "#FFFFFF";
@@ -80,6 +80,16 @@ public class HudConfig {
             case "ping" -> new Element(0, 0, 2, 74);
             case "speed" -> {
                 Element e = new Element(0, 0, 2, 91);
+                e.enabled = false;
+                yield e;
+            }
+            case "reach" -> {
+                Element e = new Element(1, 0, 2, 19);
+                e.enabled = false;
+                yield e;
+            }
+            case "combo" -> {
+                Element e = new Element(1, 0, 2, 36);
                 e.enabled = false;
                 yield e;
             }

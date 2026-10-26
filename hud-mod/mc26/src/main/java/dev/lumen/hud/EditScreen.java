@@ -11,7 +11,7 @@ import java.util.Map;
 
 /** Drag elements to move, scroll to resize, right-click to hide/show. Esc saves. */
 public class EditScreen extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects"};
+    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo"};
     private String dragging;
     private double offX;
     private double offY;

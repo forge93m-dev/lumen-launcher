@@ -1053,15 +1053,15 @@ VIEWS.settings = (page) => {
 // Preview uses Minecraft's GUI-scaled space for 1280x720 at GUI scale 3, so offsets match in-game pixels.
 const HUD_W = 427;
 const HUD_H = 240;
-const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects' };
+const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo' };
 const HUD_OPTS = {
   coords: [['coordsFacing', 'Show facing'], ['coordsBiome', 'Show biome']],
   keystrokes: [['keystrokesCps', 'CPS under mouse buttons'], ['keystrokesSpace', 'Space bar']],
   armor: [['armorDurability', 'Durability numbers'], ['armorHeldItem', 'Held item']],
   clock: [['clock24', '24-hour format']],
 };
-const HUD_SUPPORTED = ['1.21', '1.21.1', '26.1', '26.2', '26.3'];
-const hudSupports = (v) => /^(1\.21(\.1)?|26\.[123](\.\d+)?)$/.test(v);
+// Which versions have a Lumen HUD build is decided in core/hud.js; the page asks once at start-up.
+const hudSupports = (v) => !!S.hudInfo && S.hudInfo.matchers.some((m) => new RegExp(m).test(v));
 let hudSaveTimer;
 
 const hudPlace = (a, off, screen, size) => {
@@ -1103,6 +1103,8 @@ function hudElementHtml(id) {
     case 'ping': return `<div class="hbox">${v('32')}${a(' ms')}</div>`;
     case 'speed': return `<div class="hbox">${v('5.6')}${a(' b/s')}</div>`;
     case 'clock': return `<div class="hbox">${v(c.clock24 ? '21:45' : '9:45 PM')}</div>`;
+    case 'reach': return `<div class="hbox">${v('3.12')}${a(' blocks')}</div>`;
+    case 'combo': return `<div class="hbox">${v('4')}${a(' combo')}</div>`;
     case 'effects': return `<div class="hbox lines"><div>${a('Speed 2')} ${v('4:12')}</div><div>${a('Night Vision')} ${v('8:00')}</div><div>${a('Regeneration')} ${v('0:23')}</div></div>`;
     case 'coords': return `<div class="hbox lines">
       <div>${a('XYZ')} ${v('-128 72 340')}</div>
@@ -1303,7 +1305,7 @@ VIEWS.hud = async (page) => {
   const bg = S.news && S.news[0] && S.news[0].image;
   page.innerHTML = `
     <div class="page-head"><div><h1>HUD Editor</h1><p>Lumen HUD is our own Fabric mod. Edits save instantly and apply live, even mid-game. <span id="hud-saved" class="badge accent" style="opacity:.5;transition:opacity .3s">Right Shift in-game opens the editor too</span></p></div>${instBar(inst)}</div>
-    ${!supported ? `<div class="banner">${ic('info')}<div class="grow"><b>Lumen HUD runs on Fabric ${HUD_SUPPORTED.join(', ')}.</b><div class="small muted">${esc(inst.name)} is ${esc(inst.version)} ${loaderLabel(inst.loader)}. Create a HUD-ready instance in one click.</div></div><button class="btn primary sm" data-act="hud-quick">${ic('plus')}Create 26.3 instance</button></div>`
+    ${!supported ? `<div class="banner">${ic('info')}<div class="grow"><b>Lumen HUD runs on Fabric ${S.hudInfo.versions.join(', ')}.</b><div class="small muted">${esc(inst.name)} is ${esc(inst.version)} ${loaderLabel(inst.loader)}. Create a HUD-ready instance in one click.</div></div><button class="btn primary sm" data-act="hud-quick">${ic('plus')}Create 26.3 instance</button></div>`
       : !installed ? `<div class="banner">${ic('zap')}<div class="grow"><b>Lumen HUD is not installed in ${esc(inst.name)}.</b><div class="small muted">Installs the mod plus Fabric API. Your layout below is kept.</div></div><button class="btn primary sm" data-act="hud-install">${ic('download')}Install Lumen HUD</button></div>` : ''}
     <div class="hud-wrap">
       <div>
@@ -1912,6 +1914,7 @@ $('#account-chip').addEventListener('click', () => (account() ? nav('settings') 
   S.sys = await api.call('sys:info');
   S.instances = await api.call('instances:list');
   S.game = await api.call('game:state');
+  S.hudInfo = await api.call('hud:info');
   I18N.init(S.cfg.settings.language, S.sys.locale, window.LUMEN_PACKS || {}); // before the first render
   applyAccent();
   S.enter = true;

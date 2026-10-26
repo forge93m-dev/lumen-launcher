@@ -8,14 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Drag elements to move, scroll to resize, right-click to hide/show. Esc saves. */
-public class EditScreen extends Screen {
-    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects"};
+/**
+ * Drag elements to move, scroll to resize, right-click to hide/show. Esc saves.
+ * The mouse callbacks have different signatures across Minecraft versions, so they live in EditScreen (one per
+ * generation, in compat/); this class only has the logic they call.
+ */
+public abstract class EditScreenBase extends Screen {
+    private static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Effects", "Reach", "Combo"};
     private String dragging;
     private double offX;
     private double offY;
 
-    public EditScreen() {
+    protected EditScreenBase() {
         super(Text.literal("Lumen HUD"));
     }
 
@@ -70,10 +74,10 @@ public class EditScreen extends Screen {
         return null;
     }
 
-    @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    /** Returns true when the click was on an element (and handled). */
+    protected boolean press(double mx, double my, int button) {
         String id = hovered(mx, my);
-        if (id == null) return super.mouseClicked(mx, my, button);
+        if (id == null) return false;
         if (button == 1) {
             HudConfig.Element el = HudConfig.get().el(id);
             el.enabled = !el.enabled;
@@ -86,9 +90,8 @@ public class EditScreen extends Screen {
         return true;
     }
 
-    @Override
-    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
-        if (dragging == null) return super.mouseDragged(mx, my, button, dx, dy);
+    protected boolean drag(double mx, double my) {
+        if (dragging == null) return false;
         HudRenderer.Rect r = HudRenderer.RECTS.get(dragging);
         HudConfig.Element el = HudConfig.get().el(dragging);
         double[] h = anchor(mx - offX, width, r.w());
@@ -111,14 +114,11 @@ public class EditScreen extends Screen {
         return new double[]{0.5, Math.round(pos - free / 2)};
     }
 
-    @Override
-    public boolean mouseReleased(double mx, double my, int button) {
+    protected void release() {
         dragging = null;
-        return super.mouseReleased(mx, my, button);
     }
 
-    @Override
-    public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+    protected boolean scroll(double mx, double my, double vertical) {
         String id = hovered(mx, my);
         if (id == null) return false;
         HudConfig.Element el = HudConfig.get().el(id);

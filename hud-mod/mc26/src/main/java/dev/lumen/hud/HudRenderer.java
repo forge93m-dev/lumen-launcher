@@ -95,6 +95,8 @@ public final class HudRenderer {
             }
             case "ping" -> new int[]{f.width(pingText(c) + " ms") + 8, 15};
             case "speed" -> new int[]{f.width(SpeedTracker.text() + " b/s") + 8, 15};
+            case "reach" -> new int[]{f.width(ReachTracker.text() + " blocks") + 8, 15};
+            case "combo" -> new int[]{f.width(ComboTracker.text() + " combo") + 8, 15};
             case "clock" -> new int[]{f.width(clockText(cfg)) + 8, 15};
             case "effects" -> {
                 List<String[]> lines = effectLines(c);
@@ -142,6 +144,8 @@ public final class HudRenderer {
             }
             case "ping" -> valueBox(g, f, cfg, pingText(c), " ms", w, h);
             case "speed" -> valueBox(g, f, cfg, SpeedTracker.text(), " b/s", w, h);
+            case "reach" -> valueBox(g, f, cfg, ReachTracker.text(), " blocks", w, h);
+            case "combo" -> valueBox(g, f, cfg, ComboTracker.text(), " combo", w, h);
             case "clock" -> {
                 panel(g, cfg, w, h);
                 text(g, f, cfg, clockText(cfg), 4, 4, cfg.text());

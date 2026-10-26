@@ -122,8 +122,8 @@ test('args: very old versions (minecraftArguments string) still get the window s
 // ---------- Lumen HUD ----------
 
 test('hud: which versions get which build', () => {
-  for (const v of ['1.21', '1.21.1', '26.1', '26.1.2', '26.2', '26.3', '26.3.1']) assert.equal(hud.supports({ loader: 'fabric', version: v }), true, v);
-  for (const v of ['1.20.4', '1.21.2', '26.4', '1.8.9']) assert.equal(hud.supports({ loader: 'fabric', version: v }), false, v);
+  for (const v of ['1.21', '1.21.1', '1.21.4', '1.21.8', '1.21.11', '26.1', '26.1.2', '26.2', '26.3', '26.3.1']) assert.equal(hud.supports({ loader: 'fabric', version: v }), true, v);
+  for (const v of ['1.20.4', '1.21.2', '1.21.5', '1.21.9', '26.4', '1.8.9']) assert.equal(hud.supports({ loader: 'fabric', version: v }), false, v);
   assert.equal(hud.supports({ loader: 'vanilla', version: '26.3' }), false);
 });
 
@@ -140,4 +140,18 @@ test('hud: config defaults, round trip, and an old-format file is replaced by de
   assert.deepEqual(hud.getConfig(inst.id), hud.defaults());
   fs.writeFileSync(file, '{ broken json');
   assert.deepEqual(hud.getConfig(inst.id), hud.defaults(), 'a corrupt config must not break the editor');
+});
+
+test('hud: the launcher\'s default layout is the same as the mod\'s (HudConfig.java)', () => {
+  const java = fs.readFileSync(path.join(__dirname, '..', '..', 'hud-mod', 'common', 'dev', 'lumen', 'hud', 'HudConfig.java'), 'utf8');
+  const ids = /IDS = \{([^}]*)\}/.exec(java)[1].split(',').map((x) => x.trim().replace(/"/g, ''));
+  const fromJava = {};
+  for (const m of java.matchAll(/case "(\w+)" -> new Element\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\);/g)) fromJava[m[1]] = { enabled: true, ax: +m[2], ay: +m[3], x: +m[4], y: +m[5] };
+  for (const m of java.matchAll(/case "(\w+)" -> \{\s*Element e = new Element\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\);\s*e\.enabled = false;/g)) fromJava[m[1]] = { enabled: false, ax: +m[2], ay: +m[3], x: +m[4], y: +m[5] };
+  const js = hud.defaults().elements;
+  assert.deepEqual(Object.keys(js), ids, 'same elements in the same order');
+  for (const id of ids) {
+    const { enabled, ax, ay, x, y } = js[id];
+    assert.deepEqual({ enabled, ax, ay, x, y }, fromJava[id], `default of "${id}"`);
+  }
 });
