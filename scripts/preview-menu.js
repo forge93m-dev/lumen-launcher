@@ -37,8 +37,16 @@ function run() {
     const javac = spawnSync('javac', ['-proc:none', '-nowarn', '-d', classes, '-cp', cp, ...sources], { encoding: 'utf8' });
     if (javac.error) return { skipped: 'javac was not found' };
     if (javac.status !== 0) return { error: javac.stderr || javac.stdout };
-    const java = spawnSync('java', ['-Djava.awt.headless=true', '-cp', `${classes}${path.delimiter}${cp}`, 'dev.lumen.hud.MenuPreview', outDir], { encoding: 'utf8' });
-    return { status: java.status, out: `${java.stdout}${java.stderr}` };
+    // The preview gets its own config folder and skin library, and draws with the same typeface as the game.
+    const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'lumen-preview-data-'));
+    const font = path.join(root, 'hud-mod', 'mc1.21', 'src', 'main', 'resources', 'assets', 'lumenhud', 'font', 'inter.ttf');
+    try {
+      const java = spawnSync('java', ['-Djava.awt.headless=true', `-Dlumen.config=${path.join(sandbox, 'config')}`, `-Dlumen.skins=${path.join(sandbox, 'skins')}`, `-Dlumen.font=${font}`,
+        '-cp', `${classes}${path.delimiter}${cp}`, 'dev.lumen.hud.MenuPreview', outDir], { encoding: 'utf8' });
+      return { status: java.status, out: `${java.stdout}${java.stderr}` };
+    } finally {
+      fs.rmSync(sandbox, { recursive: true, force: true });
+    }
   } finally {
     fs.rmSync(classes, { recursive: true, force: true });
   }

@@ -11,6 +11,6 @@ public class FabricLoader {
     }
 
     public Path getConfigDir() {
-        return Path.of(System.getProperty("java.io.tmpdir"), "lumen-preview-config");
+        return Path.of(System.getProperty("lumen.config", System.getProperty("java.io.tmpdir") + "/lumen-preview-config"));
     }
 }

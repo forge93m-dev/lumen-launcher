@@ -2121,6 +2121,15 @@ api.onState(async (s) => {
   else { renderNav(); renderDock(); }
 });
 
+// A skin or cape was changed from inside the game: show it on the Skin page.
+api.onSkins(async () => {
+  const r = await api.call('skins:list').catch(() => null);
+  if (!r) return;
+  S.skins = r.skins;
+  S.cape = r.cape;
+  if (S.view === 'skin') render();
+});
+
 api.onLog((line, level) => {
   S.logs.push([line, level]);
   if (S.logs.length > 4000) S.logs.splice(0, S.logs.length - 4000);

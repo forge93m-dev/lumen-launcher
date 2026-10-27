@@ -20,12 +20,12 @@ final class GfxImpl implements Gfx {
 
     @Override
     public void text(String s, int x, int y, int argb, boolean shadow) {
-        ctx.drawText(tr, s, x, y, argb, shadow);
+        ctx.drawText(tr, UiFont.of(s), x, y, argb, shadow);
     }
 
     @Override
     public int width(String s) {
-        return tr.getWidth(s);
+        return tr.getWidth(UiFont.of(s));
     }
 
     @Override

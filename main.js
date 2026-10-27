@@ -308,6 +308,7 @@ handle('game:launch', async (instId, server) => {
         const startedAt = running && running.started;
         instances.patch(instId, (i) => { i.playtime = (i.playtime || 0) + secs; }).catch(() => {});
         running = null;
+        stopWatchingSkins();
         send('game:log', `[Lumen] Game exited with code ${code}`, code === 0 && !wasProblem ? 'info' : 'err');
         // A real crash (not a mod problem we already reported, not the user pressing Stop) leaves a report behind.
         if (code !== 0 && !wasProblem && !userStopped && startedAt) {
@@ -320,14 +321,41 @@ handle('game:launch', async (instId, server) => {
     });
     running.proc = proc;
     running.started = Date.now();
+    watchSkins();
     send('game:state', { state: 'running', instId, started: running.started });
     if (cfg.settings.closeOnLaunch) setTimeout(() => running && win.hide(), 4000);
   } catch (e) {
     running = null;
+    stopWatchingSkins();
     send('game:state', { state: 'idle', instId, error: e.message });
     throw e;
   }
 });
+
+// The in-game menu can change the skin and the cape (it edits the library in skins/). While a game runs, notice that,
+// hand the change to the other instances, share it with the other Lumen players and refresh the Skin page.
+let skinWatch = null;
+function watchSkins() {
+  stopWatchingSkins();
+  const dir = path.join(paths.root, 'skins');
+  let timer = null;
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const w = fs.watch(dir, () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        try { skins.syncAll(); } catch {}
+        cloud.pushQuietly();
+        send('skins:changed');
+      }, 1500);
+    });
+    skinWatch = { w, stop: () => { clearTimeout(timer); w.close(); } };
+  } catch {}
+}
+function stopWatchingSkins() {
+  if (skinWatch) skinWatch.stop();
+  skinWatch = null;
+}
 
 handle('game:kill', () => {
   if (running && running.proc) { running.killed = true; running.proc.kill(); }

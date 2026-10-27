@@ -1,5 +1,7 @@
 package dev.lumen.hud;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -267,6 +269,21 @@ public final class LumenMenu {
         throw new IllegalStateException("no card switch");
     }
 
+    void turnFigure() {
+        figureBack = !figureBack;
+    }
+
+    void scrollTo(double to) {
+        scroll = to; // clamped on the next draw
+    }
+
+    /** Centres of the clickable rectangles of exactly this size on the page, in drawing order. */
+    List<int[]> hitsOfSize(int w, int h) {
+        List<int[]> out = new ArrayList<>();
+        for (Hit hit : hits) if (hit.inContent && hit.w == w && hit.h == h) out.add(new int[]{hit.x + w / 2, hit.y + h / 2});
+        return out;
+    }
+
     int[] firstCardBody() {
         for (Hit h : hits) if (h.inContent && h.h >= 40 && h.w > 60) return new int[]{h.x + h.w / 2, h.y + 10};
         throw new IllegalStateException("no card");
@@ -320,7 +337,7 @@ public final class LumenMenu {
         inContent = true;
         int shown = switch (page) {
             case 1 -> stylePage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
-            case 2 -> cosmeticsPage(g, cx, contentTop - (int) scroll, cw);
+            case 2 -> cosmeticsPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
             case 3 -> settingsPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
             default -> detail != null ? detailPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my) : modulesPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
         };
@@ -471,31 +488,200 @@ public final class LumenMenu {
         return Math.max(ly, ry) - y + 4;
     }
 
-    /** What the player looks like, read from the files the launcher writes. */
-    private int cosmeticsPage(Gfx g, int x, int y, int cw) {
-        SkinConfig.changed();
-        int w = (cw - 12) / 3;
-        int h = 56;
-        info(g, x, y, w, h, "hanger", TINTS[0], "Skin", SkinConfig.enabled ? (SkinConfig.slim ? "Custom, slim arms" : "Custom skin") : "Default skin");
-        info(g, x + w + 6, y, w, h, "cape", TINTS[1], "Cape", SkinConfig.cape ? "Custom cape" : "No cape");
-        info(g, x + 2 * (w + 6), y, w, h, "eye", TINTS[3], "Lumen players", "Their skins and capes show through the Lumen service");
-        int ty = y + h + 12;
-        g.text("Skin and cape are chosen in the Lumen launcher, on the Skin page.", x + 2, ty, skin.dim, false);
-        g.text("Only you see them, unless the other players use Lumen too.", x + 2, ty + 11, skin.dim, false);
-        return ty + 24 - y;
+    // ---------------- cosmetics: skins and capes, chosen right here ----------------
+
+    private interface IoAction {
+        void run() throws Exception;
     }
 
-    private void info(Gfx g, int x, int y, int w, int h, String icon, int tint, String title, String text) {
-        Look.round(g, x, y, w, h, 6, skin.card);
-        Look.round(g, x + 6, y + 6, 16, 16, 4, Look.withAlpha(tint, 0x44));
-        Icons.draw(g, icon, x + 10, y + 10, tint, 1);
-        g.text(title, x + 28, y + 10, skin.text, false);
-        int ty = y + 28;
-        for (String line : wrap(g, text, w - 12)) {
-            if (ty > y + h - 8) break;
-            g.text(line, x + 6, ty, skin.dim, false);
-            ty += 10;
+    private boolean figureBack;
+    private String notice = "";
+    private boolean noticeError;
+    private long noticeAt;
+
+    private void say(String text, boolean error) {
+        notice = text;
+        noticeError = error;
+        noticeAt = System.currentTimeMillis();
+    }
+
+    private void attempt(String done, IoAction action) {
+        try {
+            action.run();
+            if (done != null) say(done, false);
+        } catch (Exception e) {
+            say(e.getMessage() == null ? "That did not work" : e.getMessage(), true);
         }
+    }
+
+    private void finishPick(FilePicker.Result r) {
+        if (r.error() != null) {
+            say(r.error(), true);
+            return;
+        }
+        attempt(null, () -> {
+            if (Files.size(r.file()) > 4_000_000) throw new IOException("That file is too big for a skin");
+            byte[] bytes = Files.readAllBytes(r.file());
+            if (r.purpose() == FilePicker.Purpose.SKIN) {
+                String name = r.file().getFileName().toString().replaceFirst("\\.[^.]*$", "");
+                SkinLibrary.add(bytes, name);
+                say("Skin added and in use", false);
+            } else {
+                SkinLibrary.setCape(bytes);
+                say("Cape set", false);
+            }
+        });
+    }
+
+    private static String fit(Gfx g, String s, int width) {
+        if (g.width(s) <= width) return s;
+        while (s.length() > 1 && g.width(s + "…") > width) s = s.substring(0, s.length() - 1);
+        return s + "…";
+    }
+
+    private void tile(Gfx g, int x, int y, int w, int h, boolean selected, boolean over, int accent) {
+        if (selected) Look.round(g, x - 1, y - 1, w + 2, h + 2, 7, accent);
+        Look.round(g, x, y, w, h, 6, over ? skin.cardHover : skin.card);
+    }
+
+    private boolean over(int mx, int my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h && my >= contentTop && my < contentBottom;
+    }
+
+    private int pill(Gfx g, int x, int y, String label, boolean on, int accent, int mx, int my, Runnable action) {
+        int w = g.width(label) + 12;
+        boolean hot = over(mx, my, x, y, w, 14);
+        Look.round(g, x, y, w, 14, 5, on ? accent : hot ? skin.cardHover : skin.hover);
+        g.text(label, x + 6, y + 3, on ? 0xFFFFFFFF : hot ? skin.text : skin.dim, false);
+        addHit(x, y, w, 14, action, null);
+        return w;
+    }
+
+    private void plus(Gfx g, int cx, int cy, int color) {
+        g.fill(cx - 5, cy - 1, cx + 6, cy + 1, color);
+        g.fill(cx - 1, cy - 5, cx + 1, cy + 6, color);
+    }
+
+    /** The player on the left, and the skins and capes to pick from on the right. */
+    private int cosmeticsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
+        FilePicker.Result picked = FilePicker.take();
+        if (picked != null) finishPick(picked);
+        List<SkinLibrary.Entry> library = SkinLibrary.skins();
+        SkinLibrary.Entry active = SkinLibrary.active();
+        int[] cape = SkinLibrary.cape();
+
+        // the player
+        int cardW = 108;
+        int cardH = 150;
+        Look.round(g, x, y, cardW, cardH, 6, skin.card);
+        int[] pixels = active == null ? null : SkinLibrary.pixels(active);
+        Figure.body(g, pixels, active != null && active.slim(), cape, figureBack, x + (cardW - 48) / 2, y + 8, 3);
+        String who = active == null ? "Default skin" : fit(g, active.name, cardW - 12);
+        g.text(who, x + (cardW - g.width(who)) / 2, y + 108, skin.text, false);
+        String sub = active == null ? "No custom skin" : active.slim() ? "Slim arms" : "Classic arms";
+        g.text(sub, x + (cardW - g.width(sub)) / 2, y + 119, skin.dim, false);
+        String turn = figureBack ? "Show front" : "Show back";
+        int tw = g.width(turn) + 14;
+        pill(g, x + (cardW - tw) / 2, y + cardH - 20, turn, false, accent, mx, my, () -> figureBack = !figureBack);
+
+        // skins
+        int rx = x + cardW + 12;
+        int rw = cw - cardW - 12;
+        int tileW = 44;
+        int cols = Math.max(1, (rw + 4) / (tileW + 4));
+        int ry = y;
+        g.text("Skin", rx, ry, accent, true);
+        if (!notice.isEmpty() && System.currentTimeMillis() - noticeAt < 6000) {
+            String n = fit(g, notice, rw - 40);
+            g.text(n, rx + rw - g.width(n), ry, noticeError ? 0xFFEF4444 : 0xFF10B981, false);
+        } else if (FilePicker.busy()) {
+            String n = "Choose a file in the window that opened…";
+            g.text(n, rx + rw - g.width(n), ry, skin.dim, false);
+        }
+        ry += 13;
+        int slot = 0;
+        int count = library.size() + 2;
+        for (int i = 0; i < count; i++) {
+            int tx = rx + (slot % cols) * (tileW + 4);
+            int ty = ry + (slot / cols) * (tileW + 4);
+            slot++;
+            boolean hot = over(mx, my, tx, ty, tileW, tileW);
+            if (i == 0) { // no custom skin
+                tile(g, tx, ty, tileW, tileW, active == null, hot, accent);
+                Figure.head(g, null, tx + (tileW - 24) / 2, ty + 5, 3);
+                String n = "Default";
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, active == null ? skin.text : skin.dim, false);
+                addHit(tx, ty, tileW, tileW, () -> attempt(null, () -> SkinLibrary.use(null)), null);
+            } else if (i == 1) { // add one
+                tile(g, tx, ty, tileW, tileW, false, hot, accent);
+                plus(g, tx + tileW / 2, ty + 18, hot ? accent : skin.dim);
+                String n = "Add skin";
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, skin.dim, false);
+                addHit(tx, ty, tileW, tileW, () -> FilePicker.open(FilePicker.Purpose.SKIN), null);
+            } else {
+                SkinLibrary.Entry e = library.get(i - 2);
+                boolean sel = active != null && e.id.equals(active.id);
+                tile(g, tx, ty, tileW, tileW, sel, hot, accent);
+                Figure.head(g, SkinLibrary.pixels(e), tx + (tileW - 24) / 2, ty + 5, 3);
+                String n = fit(g, e.name, tileW - 6);
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, sel ? skin.text : skin.dim, false);
+                addHit(tx, ty, tileW, tileW, () -> attempt(null, () -> SkinLibrary.use(e.id)), null);
+            }
+        }
+        ry += ((slot + cols - 1) / cols) * (tileW + 4);
+        if (active != null) {
+            g.text("Arms", rx, ry + 3, skin.dim, false);
+            int ax = rx + g.width("Arms") + 8;
+            ax += pill(g, ax, ry, "Classic", !active.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(active, false))) + 4;
+            ax += pill(g, ax, ry, "Slim", active.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(active, true))) + 10;
+            pill(g, ax, ry, "Remove", false, accent, mx, my, () -> attempt("Skin removed", () -> SkinLibrary.remove(active)));
+            ry += 20;
+        }
+
+        // capes
+        ry += 6;
+        g.text("Cape", rx, ry, accent, true);
+        ry += 13;
+        int capeH = 50;
+        int selected = -2; // -1: none, 0..n-1: a preset, -2: a cape of your own
+        if (cape == null) selected = -1;
+        else for (int i = 0; i < Capes.NAMES.length; i++) if (java.util.Arrays.equals(cape, Capes.make(i))) selected = i;
+        boolean custom = cape != null && selected == -2;
+        int total = 2 + (custom ? 1 : 0) + Capes.NAMES.length;
+        slot = 0;
+        for (int i = 0; i < total; i++) {
+            int tx = rx + (slot % cols) * (tileW + 4);
+            int ty = ry + (slot / cols) * (capeH + 4);
+            slot++;
+            boolean hot = over(mx, my, tx, ty, tileW, capeH);
+            if (i == 0) {
+                tile(g, tx, ty, tileW, capeH, selected == -1, hot, accent);
+                g.fill(tx + tileW / 2 - 8, ty + 14, tx + tileW / 2 + 8, ty + 16, skin.dim);
+                String n = "None";
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 38, selected == -1 ? skin.text : skin.dim, false);
+                addHit(tx, ty, tileW, capeH, () -> attempt(null, SkinLibrary::clearCape), null);
+            } else if (i == 1) {
+                tile(g, tx, ty, tileW, capeH, false, hot, accent);
+                plus(g, tx + tileW / 2, ty + 20, hot ? accent : skin.dim);
+                String n = "Add cape";
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 38, skin.dim, false);
+                addHit(tx, ty, tileW, capeH, () -> FilePicker.open(FilePicker.Purpose.CAPE), null);
+            } else {
+                boolean mine = custom && i == 2;
+                int preset = i - 2 - (custom ? 1 : 0);
+                int[] px = mine ? cape : Capes.make(preset);
+                boolean sel = mine || preset == selected;
+                tile(g, tx, ty, tileW, capeH, sel, hot, accent);
+                Figure.blit(g, px, 64, 1, 1, 10, 16, tx + (tileW - 20) / 2, ty + 4, 2, false);
+                String n = mine ? "Yours" : Capes.NAMES[preset];
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 38, sel ? skin.text : skin.dim, false);
+                if (!mine) addHit(tx, ty, tileW, capeH, () -> attempt(null, () -> SkinLibrary.setCape(Capes.make(preset))), null);
+            }
+        }
+        ry += ((slot + cols - 1) / cols) * (capeH + 4);
+        g.text("Other Lumen players see your skin and cape too.", rx, ry + 2, skin.dim, false);
+        ry += 14;
+        return Math.max(cardH, ry - y) + 6;
     }
 
     private int settingsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {

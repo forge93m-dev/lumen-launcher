@@ -24,4 +24,5 @@ contextBridge.exposeInMainWorld('lumen', {
   onProblem: on('game:problem'),
   onError: on('app:error'),
   onCrash: on('game:crash'),
+  onSkins: on('skins:changed'),
 });
