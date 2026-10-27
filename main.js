@@ -164,7 +164,7 @@ handle('modules:list', async () => {
   try { projects = await mr.getProjects(modules.map((m) => m.slug)); } catch {}
   const own = {
     slug: hud.ID, id: hud.ID, cat: 'HUD', name: 'Lumen HUD', builtin: true, preset: true, icon: 'img/lumenhud.png',
-    desc: 'Our own HUD: FPS, CPS, ping, keystrokes, coordinates, armor, potion effects and more. Edit it in the HUD Editor.',
+    desc: 'Our own HUD: FPS, ping, coordinates, armor, potion effects and more. Edit it in the HUD Editor.',
     gameVersions: hud.GAME_VERSIONS, loaders: ['fabric'],
   };
   return [own, ...modules.map((m) => {

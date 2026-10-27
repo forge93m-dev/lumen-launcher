@@ -137,8 +137,8 @@ public final class LumenMenu {
     }
 
     private static final Map<String, String> ELEMENT_ICONS = Map.ofEntries(
-            Map.entry("fps", "bolt"), Map.entry("cps", "cursor"), Map.entry("ping", "signal"), Map.entry("coords", "pin"),
-            Map.entry("keystrokes", "keys"), Map.entry("armor", "shield"), Map.entry("effects", "flask"), Map.entry("items", "bag"),
+            Map.entry("fps", "bolt"), Map.entry("ping", "signal"), Map.entry("coords", "pin"),
+            Map.entry("armor", "shield"), Map.entry("effects", "flask"), Map.entry("items", "bag"),
             Map.entry("target", "target"), Map.entry("alert", "warn"), Map.entry("death", "skull"), Map.entry("reach", "ruler"),
             Map.entry("combo", "flame"), Map.entry("speed", "arrow"), Map.entry("clock", "clock"), Map.entry("session", "hourglass"),
             Map.entry("memory", "chip"), Map.entry("server", "server"), Map.entry("sprint", "boot"), Map.entry("compass", "compass"));
@@ -152,46 +152,42 @@ public final class LumenMenu {
 
     static List<Module> build() {
         List<Module> out = new ArrayList<>();
-        out.add(element("fps", "Frames per second."));
-        out.add(element("cps", "Clicks per second, left and right."));
-        out.add(element("compass", "A heading strip with your waypoints. Add one with /lumen wp add <name>."));
-        out.add(element("ping", "Your latency to the server."));
-        out.add(element("coords", "Position, facing direction and biome.")
+        out.add(element("fps", "Shows how many frames the game draws every second. Higher is smoother; below 30 you will feel the lag."));
+        out.add(element("compass", "A strip at the top that shows which way you face, with markers for your waypoints. Add one with /lumen wp add <name>."));
+        out.add(element("ping", "How long the server takes to answer you, in milliseconds. Lower is better; it is empty in single player."));
+        out.add(element("coords", "Your X, Y and Z, the direction you are facing and the biome you stand in, without opening the F3 screen.")
                 .with(Setting.sw("Show facing", () -> HudConfig.get().coordsFacing, v -> HudConfig.get().coordsFacing = v))
                 .with(Setting.sw("Show biome", () -> HudConfig.get().coordsBiome, v -> HudConfig.get().coordsBiome = v)));
-        out.add(element("keystrokes", "WASD, mouse buttons and space, with fading presses.")
-                .with(Setting.sw("CPS under mouse buttons", () -> HudConfig.get().keystrokesCps, v -> HudConfig.get().keystrokesCps = v))
-                .with(Setting.sw("Space bar", () -> HudConfig.get().keystrokesSpace, v -> HudConfig.get().keystrokesSpace = v)));
-        out.add(element("armor", "Worn armor and the held item with durability.")
+        out.add(element("armor", "Draws your armor and the item in your hand with how much durability each has left.")
                 .with(Setting.sw("Durability numbers", () -> HudConfig.get().armorDurability, v -> HudConfig.get().armorDurability = v))
                 .with(Setting.sw("Held item", () -> HudConfig.get().armorHeldItem, v -> HudConfig.get().armorHeldItem = v)));
-        out.add(element("effects", "Active potion effects with time left."));
-        out.add(element("items", "Totems, golden apples, pearls and crystals in your inventory.")
+        out.add(element("effects", "Lists the potion effects on you with their level and the time left, so you know when to drink again."));
+        out.add(element("items", "Counts the combat items in your inventory: totems, golden apples, ender pearls and end crystals.")
                 .with(Setting.sw("Totems", () -> HudConfig.get().itemsTotems, v -> HudConfig.get().itemsTotems = v))
                 .with(Setting.sw("Golden apples", () -> HudConfig.get().itemsGapples, v -> HudConfig.get().itemsGapples = v))
                 .with(Setting.sw("Ender pearls", () -> HudConfig.get().itemsPearls, v -> HudConfig.get().itemsPearls = v))
                 .with(Setting.sw("End crystals", () -> HudConfig.get().itemsCrystals, v -> HudConfig.get().itemsCrystals = v)));
-        out.add(element("target", "Name and health of what your crosshair points at."));
-        out.add(element("alert", "Warns when armor or your tool is about to break.")
+        out.add(element("target", "Shows the name and health of the player or mob under your crosshair."));
+        out.add(element("alert", "Flashes a warning when a piece of armor or your tool is about to break, before you lose it.")
                 .with(Setting.slider("Warn below", 5, 50, 1, "%", () -> HudConfig.get().durabilityPercent, v -> HudConfig.get().durabilityPercent = (int) v)));
-        out.add(element("death", "Where you died last, so you can fetch your items.")
+        out.add(element("death", "Remembers where you died last, with the dimension, so you can go and fetch your items.")
                 .with(Setting.sw("Say it in chat after respawn", () -> HudConfig.get().deathChat, v -> HudConfig.get().deathChat = v)));
-        out.add(element("reach", "Distance of your last hit."));
-        out.add(element("combo", "Hits in a row without being hurt."));
-        out.add(element("speed", "How fast you move, in blocks per second."));
-        out.add(element("clock", "Your real-world time.")
+        out.add(element("reach", "Shows the distance of your last hit, to see how close you really were."));
+        out.add(element("combo", "Counts the hits you land in a row without being hurt. It resets when you take damage."));
+        out.add(element("speed", "Your speed in blocks per second, useful for checking sprint, elytra and boats."));
+        out.add(element("clock", "The real time of day on your computer, so you never lose track while playing.")
                 .with(Setting.sw("24-hour format", () -> HudConfig.get().clock24, v -> HudConfig.get().clock24 = v)));
-        out.add(element("session", "How long the game has been running."));
-        out.add(element("memory", "Memory the game is using.")
+        out.add(element("session", "How long you have been playing in this session."));
+        out.add(element("memory", "How much memory the game is using out of what it may take. If it fills up, give the game more RAM in the launcher.")
                 .with(Setting.sw("Show maximum", () -> HudConfig.get().memoryShowMax, v -> HudConfig.get().memoryShowMax = v)));
-        out.add(element("server", "Address of the server you are on."));
-        out.add(element("sprint", "Shows when toggle sprint is active."));
+        out.add(element("server", "The address of the server you are connected to."));
+        out.add(element("sprint", "Tells you when toggle sprint is keeping you running."));
 
-        out.add(new Module("CLIENT", "Toggle sprint", "Keeps you sprinting while you hold W.", () -> HudConfig.get().toggleSprint, v -> HudConfig.get().toggleSprint = v).icon("boot"));
-        out.add(new Module("CLIENT", "Toggle sneak", "Press the sneak key once to sneak, again to stop.", () -> HudConfig.get().toggleSneak, v -> HudConfig.get().toggleSneak = v).icon("sneak"));
-        out.add(new Module("CLIENT", "Freelook", "Hold Left Alt and look around without turning your player.", () -> HudConfig.get().freelook, v -> HudConfig.get().freelook = v).icon("eye"));
-        out.add(new Module("CLIENT", "Fullbright", "Caves and nights are fully lit.", () -> HudConfig.get().fullbright, v -> HudConfig.get().fullbright = v).icon("sun"));
-        out.add(new Module("CLIENT", "Zoom", "Hold C to zoom in.", () -> HudConfig.get().zoom, v -> HudConfig.get().zoom = v).icon("zoom")
+        out.add(new Module("CLIENT", "Toggle sprint", "Keeps you sprinting until you stop, so you do not have to hold the sprint key.", () -> HudConfig.get().toggleSprint, v -> HudConfig.get().toggleSprint = v).icon("boot"));
+        out.add(new Module("CLIENT", "Toggle sneak", "Press the sneak key once to sneak and again to stop, instead of holding it.", () -> HudConfig.get().toggleSneak, v -> HudConfig.get().toggleSneak = v).icon("sneak"));
+        out.add(new Module("CLIENT", "Freelook", "Hold Left Alt to look around your player without turning where you walk or aim.", () -> HudConfig.get().freelook, v -> HudConfig.get().freelook = v).icon("eye"));
+        out.add(new Module("CLIENT", "Fullbright", "Makes everything fully bright, so caves and nights are as light as day.", () -> HudConfig.get().fullbright, v -> HudConfig.get().fullbright = v).icon("sun"));
+        out.add(new Module("CLIENT", "Zoom", "Hold C to zoom in on far things, like a spyglass. The field of view below sets how far.", () -> HudConfig.get().zoom, v -> HudConfig.get().zoom = v).icon("zoom")
                 .with(Setting.slider("Field of view", 5, 60, 1, "°", () -> HudConfig.get().zoomFov, v -> HudConfig.get().zoomFov = (int) v))
                 .with(Setting.sw("Smooth zoom", () -> HudConfig.get().smoothZoom, v -> HudConfig.get().smoothZoom = v)));
 
@@ -272,11 +268,11 @@ public final class LumenMenu {
     }
 
     void turnFigure() {
-        figureBack = !figureBack;
+        yaw += 180;
     }
 
     void scrollTo(double to) {
-        scroll = to; // clamped on the next draw
+        scroll = Math.max(0, Math.min(maxScroll, to));
     }
 
     /** Centres of the clickable rectangles of exactly this size on the page, in drawing order. */
@@ -301,10 +297,39 @@ public final class LumenMenu {
 
     private Skin skin = Skin.current();
 
-    public void render(Gfx g, int sw, int sh, int mx, int my) {
+    private final Motion anim = new Motion();
+    /** The module card under the mouse this frame, and the screen size, for the little description that appears after a moment. */
+    private Module tipModule;
+    private int scrW, scrH;
+    /** How far the menu has opened (0..1), which page or module is showing, and how far its change has got. */
+    private double opened = Motion.frozen ? 1 : 0;
+    private double changed = 1;
+    private int lastView = -1;
+    private double dockPos = page;
+
+    /** Eased 0..1 hover amount of something on screen, so highlights fade instead of snapping. */
+    private double hover(Object key, boolean over) {
+        return anim.ease(key, over ? 1 : 0, 8);
+    }
+
+    public void render(Gfx raw, int sw, int sh, int mx, int my) {
         hits.clear();
         inContent = false;
+        tipModule = null;
+        scrW = sw;
+        scrH = sh;
         skin = Skin.current();
+        anim.tick();
+        opened = Motion.frozen ? 1 : Math.min(1, opened + anim.dt / 0.22);
+        int view = page * 1000 + (detail == null ? 0 : modules.indexOf(detail) + 1);
+        if (view != lastView) {
+            changed = lastView < 0 || Motion.frozen ? 1 : 0;
+            lastView = view;
+        }
+        changed = Math.min(1, changed + anim.dt / 0.2);
+        dockPos = Motion.frozen ? page : dockPos + (page - dockPos) * (1 - Math.exp(-anim.dt * 18));
+        double open = Motion.smooth(opened);
+        Gfx g = open >= 1 ? raw : new Motion.Fade(raw, open);
         final int EDGE = skin.edge, DIM = skin.dim, TEXT = skin.text;
         HudConfig cfg = HudConfig.get();
         int accent = cfg.accent();
@@ -313,7 +338,7 @@ public final class LumenMenu {
         pw = Math.min(sw - 16, 470);
         ph = Math.min(sh - 16 - dockH - gap, 250);
         px = (sw - pw) / 2;
-        py = (sh - (ph + gap + dockH)) / 2;
+        py = (sh - (ph + gap + dockH)) / 2 + (int) Math.round((1 - open) * 8);
         Look.outline(g, px, py, pw, ph, 6, EDGE, skin.panel);
 
         // header: what this is, where you are, and the way into the layout editor
@@ -325,7 +350,7 @@ public final class LumenMenu {
         int bw = g.width(edit) + 14;
         int bx = px + pw - bw - 8;
         boolean hot = mx >= bx && mx < bx + bw && my >= py + 6 && my < py + 22;
-        Look.round(g, bx, py + 6, bw, 16, 4, hot ? Look.withAlpha(accent, 0xFF) : Look.withAlpha(accent, 0x90));
+        Look.round(g, bx, py + 6, bw, 16, 4, Look.mix(Look.withAlpha(accent, 0x90), Look.withAlpha(accent, 0xFF), hover("edit", hot)));
         g.text(edit, bx + 7, py + 10, 0xFFFFFFFF, false);
         addHit(bx, py + 6, bw, 16, () -> wantsLayout = true, null);
         g.fill(px + 8, py + 27, px + pw - 8, py + 28, EDGE);
@@ -337,11 +362,14 @@ public final class LumenMenu {
         contentBottom = py + ph - 6;
         g.clip(px + 4, contentTop, px + pw - 4, contentBottom);
         inContent = true;
+        double shift = Motion.smooth(changed);
+        Gfx c = shift >= 1 ? g : new Motion.Fade(g, shift); // a new page fades in while it settles up from a few pixels below
+        int top = contentTop - (int) scroll + (int) Math.round((1 - shift) * 6);
         int shown = switch (page) {
-            case 1 -> stylePage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
-            case 2 -> cosmeticsPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
-            case 3 -> settingsPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
-            default -> detail != null ? detailPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my) : modulesPage(g, cx, contentTop - (int) scroll, cw, accent, mx, my);
+            case 1 -> stylePage(c, cx, top, cw, accent, mx, my);
+            case 2 -> cosmeticsPage(c, cx, top, cw, accent, mx, my);
+            case 3 -> settingsPage(c, cx, top, cw, accent, mx, my);
+            default -> detail != null ? detailPage(c, cx, top, cw, accent, mx, my) : modulesPage(c, cx, top, cw, accent, mx, my);
         };
         inContent = false;
         g.unclip();
@@ -355,6 +383,34 @@ public final class LumenMenu {
         }
 
         dock(g, sw, accent, mx, my);
+        tooltip(g, mx, my);
+    }
+
+    /** What the module under the mouse does, shown after the mouse rests on its card for a moment. */
+    private void tooltip(Gfx g, int mx, int my) {
+        for (Module m : modules) {
+            double t = anim.ease(java.util.List.of("tip", m), m == tipModule ? 1 : 0, 1.6);
+            if (m != tipModule || t <= 0.5 || m.desc == null || m.desc.isEmpty()) continue;
+            double fade = (t - 0.5) * 2;
+            Gfx f = new Motion.Fade(g, fade);
+            List<String> lines = wrap(f, m.desc, 150);
+            int w = 8, h = 10 + lines.size() * 10 + 12;
+            for (String l : lines) w = Math.max(w, g.width(l));
+            w += 14;
+            int tx = Math.min(scrW - w - 4, mx + 10);
+            int ty = Math.min(scrH - h - 4, my + 14);
+            Look.outline(f, tx, ty, w, h, 5, skin.edge, skin.panel);
+            f.text(m.name, tx + 7, ty + 5, accentForTip(), true);
+            int ly = ty + 17;
+            for (String l : lines) {
+                f.text(l, tx + 7, ly, skin.text, false);
+                ly += 10;
+            }
+        }
+    }
+
+    private int accentForTip() {
+        return HudConfig.get().accent();
     }
 
     /** The row of page icons under the window. */
@@ -364,10 +420,12 @@ public final class LumenMenu {
         dockX = (sw - dockW) / 2;
         dockY = py + ph + 6;
         Look.outline(g, dockX, dockY, dockW, dockH, dockH / 2, skin.edge, skin.panel);
+        Look.round(g, dockX + 5 + (int) Math.round(dockPos * slot) + 3, dockY + 3, slot - 6, dockH - 6, 10, Look.withAlpha(accent, 0x30)); // the marker glides to the page you picked
         for (int i = 0; i < PAGE_ICONS.length; i++) {
             int x = dockX + 5 + i * slot;
             boolean over = mx >= x && mx < x + slot && my >= dockY && my < dockY + dockH;
-            if (over && i != page) Look.round(g, x + 3, dockY + 3, slot - 6, dockH - 6, 10, skin.hover);
+            double lit = hover("dock" + i, over && i != page);
+            if (lit > 0) Look.round(g, x + 3, dockY + 3, slot - 6, dockH - 6, 10, Look.alpha(skin.hover, lit));
             Icons.draw(g, PAGE_ICONS[i], x + (slot - 16) / 2, dockY + (dockH - 16) / 2, i == page ? accent : over ? skin.text : skin.dim, 2);
             final int target = i;
             hits.add(new Hit(x, dockY, slot, dockH, () -> goTo(target), null, false));
@@ -407,13 +465,14 @@ public final class LumenMenu {
 
     private void card(Gfx g, Module m, int tint, int x, int y, int w, int h, int accent, int mx, int my) {
         boolean over = mx >= x && mx < x + w && my >= y && my < y + h && my >= contentTop && my < contentBottom;
-        Look.round(g, x, y, w, h, 6, over ? skin.cardHover : skin.card);
+        if (over) tipModule = m;
+        Look.round(g, x, y, w, h, 6, Look.mix(skin.card, skin.cardHover, hover(java.util.List.of("card", m), over)));
         Look.round(g, x + 6, y + 6, 16, 16, 4, Look.withAlpha(tint, 0x44));
-        Icons.draw(g, m.icon, x + 10, y + 10, tint, 1);
-        if (!m.settings.isEmpty()) Icons.draw(g, "gear", x + w - 14, y + 6, skin.dim, 1);
+        Icons.size(g, m.icon, x + 8, y + 8, tint, 12);
+        if (!m.settings.isEmpty()) Icons.size(g, "gear", x + w - 15, y + 6, skin.dim, 10);
         boolean on = m.on == null || m.on.getAsBoolean();
         g.text(m.name, x + 7, y + 26, on ? skin.text : skin.dim, false);
-        if (m.on != null) switchAt(g, x + 6, y + 37, on, accent, skin.off);
+        if (m.on != null) switchAt(g, m, x + 6, y + 37, on, accent, skin.off);
         addHit(x, y, w, h, () -> detail = m, null);
         if (m.on != null) addHit(x, y + 33, 34, h - 33, () -> m.setOn.accept(!m.on.getAsBoolean()), null);
     }
@@ -423,7 +482,7 @@ public final class LumenMenu {
         Module m = detail;
         int back = g.width("Back") + 24;
         boolean over = mx >= x && mx < x + back && my >= y && my < y + 14;
-        Look.round(g, x, y, back, 14, 6, over ? skin.cardHover : skin.card);
+        Look.round(g, x, y, back, 14, 6, Look.mix(skin.card, skin.cardHover, hover("back", over)));
         Icons.draw(g, "back", x + 5, y + 3, skin.dim, 1);
         g.text("Back", x + 16, y + 3, skin.text, false);
         addHit(x, y, back, 14, () -> {
@@ -435,11 +494,11 @@ public final class LumenMenu {
         int ly = y + 22;
         int tint = TINTS[modules.indexOf(m) % TINTS.length];
         Look.round(g, x, ly, 30, 30, 8, Look.withAlpha(tint, 0x44));
-        Icons.draw(g, m.icon, x + 7, ly + 7, tint, 2);
+        Icons.size(g, m.icon, x + 6, ly + 6, tint, 18);
         g.text(m.name, x + 38, ly + 5, accent, true);
         if (m.on != null) {
             boolean on = m.on.getAsBoolean();
-            switchAt(g, x + 38, ly + 18, on, accent, skin.off);
+            switchAt(g, m, x + 38, ly + 18, on, accent, skin.off);
             g.text(on ? "On" : "Off", x + 64, ly + 19, on ? skin.text : skin.dim, false);
             addHit(x + 36, ly + 14, 60, 16, () -> m.setOn.accept(!m.on.getAsBoolean()), null);
         }
@@ -496,7 +555,6 @@ public final class LumenMenu {
         void run() throws Exception;
     }
 
-    private boolean figureBack;
     private String notice = "";
     private boolean noticeError;
     private long noticeAt;
@@ -543,7 +601,7 @@ public final class LumenMenu {
 
     private void tile(Gfx g, int x, int y, int w, int h, boolean selected, boolean over, int accent) {
         if (selected) Look.round(g, x - 1, y - 1, w + 2, h + 2, 7, accent);
-        Look.round(g, x, y, w, h, 6, over ? skin.cardHover : skin.card);
+        Look.round(g, x, y, w, h, 6, Look.mix(skin.card, skin.cardHover, hover(((long) x << 20) ^ (y + (long) scroll), over)));
     }
 
     private boolean over(int mx, int my, int x, int y, int w, int h) {
@@ -553,7 +611,7 @@ public final class LumenMenu {
     private int pill(Gfx g, int x, int y, String label, boolean on, int accent, int mx, int my, Runnable action) {
         int w = g.width(label) + 12;
         boolean hot = over(mx, my, x, y, w, 14);
-        Look.round(g, x, y, w, 14, 5, on ? accent : hot ? skin.cardHover : skin.hover);
+        Look.round(g, x, y, w, 14, 5, on ? accent : Look.mix(skin.hover, skin.cardHover, hover("pill" + label, hot)));
         g.text(label, x + 6, y + 3, on ? 0xFFFFFFFF : hot ? skin.text : skin.dim, false);
         addHit(x, y, w, 14, action, null);
         return w;
@@ -564,31 +622,102 @@ public final class LumenMenu {
         g.fill(cx - 1, cy - 5, cx + 1, cy + 6, color);
     }
 
-    /** The player on the left, and the skins and capes to pick from on the right. */
+    private static final String DEFAULT_SKIN = "\u0000default";
+    /** What the player has picked in the wardrobe but not put on yet: null means "no change". */
+    private String pendingSkin;
+    private boolean pendingCapeSet;
+    private int[] pendingCape;
+    private double yaw = 28;
+    private boolean turning;
+    private double turnX, pressX;
+    private final java.util.Map<String, int[]> pictures = new java.util.LinkedHashMap<>();
+
+    /** Puts on what is picked in the wardrobe. */
+    void equip() {
+        attempt("Equipped", () -> {
+            if (pendingSkin != null) SkinLibrary.use(DEFAULT_SKIN.equals(pendingSkin) ? null : pendingSkin);
+            if (pendingCapeSet) {
+                if (pendingCape == null) SkinLibrary.clearCape();
+                else SkinLibrary.setCape(pendingCape);
+            }
+        });
+        dropPending();
+    }
+
+    private void dropPending() {
+        pendingSkin = null;
+        pendingCapeSet = false;
+        pendingCape = null;
+    }
+
+    /** A picture of the player at this angle; the last few are kept, so a still pose costs nothing. */
+    private int[] model(int[] pixels, boolean slim, int[] cape, int w, int h) {
+        String key = java.util.Arrays.hashCode(pixels) + ":" + slim + ":" + java.util.Arrays.hashCode(cape) + ":" + Math.round(yaw) + ":" + w + "x" + h;
+        int[] img = pictures.remove(key);
+        if (img == null) img = PlayerModel.render(pixels, slim, cape, Math.round(yaw), w, h);
+        pictures.put(key, img);
+        while (pictures.size() > 8) pictures.remove(pictures.keySet().iterator().next());
+        return img;
+    }
+
+    /** The player in 3D on the left, as they look now and as they would look after the change, and the skins and capes to pick from on the right. */
     private int cosmeticsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
         FilePicker.Result picked = FilePicker.take();
-        if (picked != null) finishPick(picked);
+        if (picked != null) {
+            dropPending();
+            finishPick(picked);
+        }
+        if (!turning) yaw = (yaw + anim.dt * 26) % 360;
         List<SkinLibrary.Entry> library = SkinLibrary.skins();
         SkinLibrary.Entry active = SkinLibrary.active();
         int[] cape = SkinLibrary.cape();
+        SkinLibrary.Entry chosen = active;
+        if (pendingSkin != null) {
+            chosen = null;
+            for (SkinLibrary.Entry e : library) if (e.id.equals(pendingSkin)) chosen = e;
+        }
+        int[] chosenCape = pendingCapeSet ? pendingCape : cape;
+        boolean changed = (pendingSkin != null && (active == null ? chosen != null : chosen == null || !chosen.id.equals(active.id)))
+                || (pendingCapeSet && !java.util.Arrays.equals(cape, pendingCape));
 
-        // the player
-        int cardW = 108;
-        int cardH = 150;
-        Look.round(g, x, y, cardW, cardH, 6, skin.card);
-        int[] pixels = active == null ? null : SkinLibrary.pixels(active);
-        Figure.body(g, pixels, active != null && active.slim(), cape, figureBack, x + (cardW - 48) / 2, y + 8, 3);
-        String who = active == null ? "Default skin" : fit(g, active.name, cardW - 12);
-        g.text(who, x + (cardW - g.width(who)) / 2, y + 108, skin.text, false);
-        String sub = active == null ? "No custom skin" : active.slim() ? "Slim arms" : "Classic arms";
-        g.text(sub, x + (cardW - g.width(sub)) / 2, y + 119, skin.dim, false);
-        String turn = figureBack ? "Show front" : "Show back";
-        int tw = g.width(turn) + 14;
-        pill(g, x + (cardW - tw) / 2, y + cardH - 20, turn, false, accent, mx, my, () -> figureBack = !figureBack);
+        // the stage: two turntables
+        int stageW = 188;
+        int stageH = 148;
+        Look.round(g, x, y, stageW, stageH, 8, skin.card);
+        int mw = 76, mh = 104;
+        int s = g.scale();
+        int left = x + 8;
+        int right = x + stageW - 8 - mw;
+        for (int i = 0; i < 2; i++) {
+            SkinLibrary.Entry who = i == 0 ? active : chosen;
+            int[] img = model(who == null ? null : SkinLibrary.pixels(who), who != null && who.slim(), i == 0 ? cape : chosenCape, mw * s, mh * s);
+            int mxp = i == 0 ? left : right;
+            Look.round(g, mxp + 12, y + mh - 4, mw - 24, 6, 3, Look.withAlpha(0xFF000000, 0x40)); // the floor under the feet
+            g.pixels(img, mw * s, mh * s, mxp, y + 6);
+            String label = i == 0 ? "Now" : "After";
+            g.text(label, mxp + (mw - g.width(label)) / 2, y + mh + 3, i == 1 && changed ? accent : skin.dim, false);
+        }
+        g.text("›", x + stageW / 2 - g.width("›") / 2, y + 46, skin.dim, false);
+        addHit(x, y, stageW, mh + 4, () -> {
+            turning = true;
+            turnX = pressX;
+        }, null);
+        int by = y + stageH - 21;
+        int equipW = g.width("Equip") + 18;
+        int cancelW = g.width("Revert") + 18;
+        int bx = x + (stageW - equipW - cancelW - 6) / 2;
+        boolean hotEquip = changed && over(mx, my, bx, by, equipW, 16);
+        Look.round(g, bx, by, equipW, 16, 6, changed ? Look.mix(accent, 0xFFFFFFFF, hover("equip", hotEquip) * 0.25) : skin.hover);
+        g.text("Equip", bx + 9, by + 4, changed ? 0xFFFFFFFF : skin.dim, false);
+        if (changed) addHit(bx, by, equipW, 16, this::equip, null);
+        boolean hotRevert = changed && over(mx, my, bx + equipW + 6, by, cancelW, 16);
+        Look.round(g, bx + equipW + 6, by, cancelW, 16, 6, Look.mix(skin.hover, skin.cardHover, hover("revert", hotRevert)));
+        g.text("Revert", bx + equipW + 15, by + 4, changed ? skin.text : skin.dim, false);
+        if (changed) addHit(bx + equipW + 6, by, cancelW, 16, this::dropPending, null);
 
         // skins
-        int rx = x + cardW + 12;
-        int rw = cw - cardW - 12;
+        int rx = x + stageW + 12;
+        int rw = cw - stageW - 12;
         int tileW = 44;
         int cols = Math.max(1, (rw + 4) / (tileW + 4));
         int ry = y;
@@ -598,6 +727,9 @@ public final class LumenMenu {
             g.text(n, rx + rw - g.width(n), ry, noticeError ? 0xFFEF4444 : 0xFF10B981, false);
         } else if (FilePicker.busy()) {
             String n = "Choose a file in the window that opened…";
+            g.text(n, rx + rw - g.width(n), ry, skin.dim, false);
+        } else {
+            String n = "Drag the players to turn them";
             g.text(n, rx + rw - g.width(n), ry, skin.dim, false);
         }
         ry += 13;
@@ -609,11 +741,11 @@ public final class LumenMenu {
             slot++;
             boolean hot = over(mx, my, tx, ty, tileW, tileW);
             if (i == 0) { // no custom skin
-                tile(g, tx, ty, tileW, tileW, active == null, hot, accent);
+                tile(g, tx, ty, tileW, tileW, chosen == null, hot, accent);
                 Figure.head(g, null, tx + (tileW - 24) / 2, ty + 5, 3);
                 String n = "Default";
-                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, active == null ? skin.text : skin.dim, false);
-                addHit(tx, ty, tileW, tileW, () -> attempt(null, () -> SkinLibrary.use(null)), null);
+                g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, chosen == null ? skin.text : skin.dim, false);
+                addHit(tx, ty, tileW, tileW, () -> pendingSkin = DEFAULT_SKIN, null);
             } else if (i == 1) { // add one
                 tile(g, tx, ty, tileW, tileW, false, hot, accent);
                 plus(g, tx + tileW / 2, ty + 18, hot ? accent : skin.dim);
@@ -622,21 +754,25 @@ public final class LumenMenu {
                 addHit(tx, ty, tileW, tileW, () -> FilePicker.open(FilePicker.Purpose.SKIN), null);
             } else {
                 SkinLibrary.Entry e = library.get(i - 2);
-                boolean sel = active != null && e.id.equals(active.id);
+                boolean sel = chosen != null && e.id.equals(chosen.id);
                 tile(g, tx, ty, tileW, tileW, sel, hot, accent);
                 Figure.head(g, SkinLibrary.pixels(e), tx + (tileW - 24) / 2, ty + 5, 3);
                 String n = fit(g, e.name, tileW - 6);
                 g.text(n, tx + (tileW - g.width(n)) / 2, ty + 32, sel ? skin.text : skin.dim, false);
-                addHit(tx, ty, tileW, tileW, () -> attempt(null, () -> SkinLibrary.use(e.id)), null);
+                addHit(tx, ty, tileW, tileW, () -> pendingSkin = e.id, null);
             }
         }
         ry += ((slot + cols - 1) / cols) * (tileW + 4);
-        if (active != null) {
+        final SkinLibrary.Entry shown = chosen;
+        if (shown != null) {
             g.text("Arms", rx, ry + 3, skin.dim, false);
             int ax = rx + g.width("Arms") + 8;
-            ax += pill(g, ax, ry, "Classic", !active.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(active, false))) + 4;
-            ax += pill(g, ax, ry, "Slim", active.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(active, true))) + 10;
-            pill(g, ax, ry, "Remove", false, accent, mx, my, () -> attempt("Skin removed", () -> SkinLibrary.remove(active)));
+            ax += pill(g, ax, ry, "Classic", !shown.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(shown, false))) + 4;
+            ax += pill(g, ax, ry, "Slim", shown.slim(), accent, mx, my, () -> attempt(null, () -> SkinLibrary.setSlim(shown, true))) + 10;
+            pill(g, ax, ry, "Remove", false, accent, mx, my, () -> attempt("Skin removed", () -> {
+                SkinLibrary.remove(shown);
+                dropPending();
+            }));
             ry += 20;
         }
 
@@ -646,9 +782,9 @@ public final class LumenMenu {
         ry += 13;
         int capeH = 50;
         int selected = -2; // -1: none, 0..n-1: a preset, -2: a cape of your own
-        if (cape == null) selected = -1;
-        else for (int i = 0; i < Capes.NAMES.length; i++) if (java.util.Arrays.equals(cape, Capes.make(i))) selected = i;
-        boolean custom = cape != null && selected == -2;
+        if (chosenCape == null) selected = -1;
+        else for (int i = 0; i < Capes.NAMES.length; i++) if (java.util.Arrays.equals(chosenCape, Capes.make(i))) selected = i;
+        boolean custom = chosenCape != null && selected == -2;
         int total = 2 + (custom ? 1 : 0) + Capes.NAMES.length;
         slot = 0;
         for (int i = 0; i < total; i++) {
@@ -658,10 +794,13 @@ public final class LumenMenu {
             boolean hot = over(mx, my, tx, ty, tileW, capeH);
             if (i == 0) {
                 tile(g, tx, ty, tileW, capeH, selected == -1, hot, accent);
-                g.fill(tx + tileW / 2 - 8, ty + 14, tx + tileW / 2 + 8, ty + 16, skin.dim);
+                Look.round(g, tx + tileW / 2 - 8, ty + 14, 16, 2, 1, skin.dim);
                 String n = "None";
                 g.text(n, tx + (tileW - g.width(n)) / 2, ty + 38, selected == -1 ? skin.text : skin.dim, false);
-                addHit(tx, ty, tileW, capeH, () -> attempt(null, SkinLibrary::clearCape), null);
+                addHit(tx, ty, tileW, capeH, () -> {
+                    pendingCapeSet = true;
+                    pendingCape = null;
+                }, null);
             } else if (i == 1) {
                 tile(g, tx, ty, tileW, capeH, false, hot, accent);
                 plus(g, tx + tileW / 2, ty + 20, hot ? accent : skin.dim);
@@ -671,19 +810,22 @@ public final class LumenMenu {
             } else {
                 boolean mine = custom && i == 2;
                 int preset = i - 2 - (custom ? 1 : 0);
-                int[] px = mine ? cape : Capes.make(preset);
+                int[] px = mine ? chosenCape : Capes.make(preset);
                 boolean sel = mine || preset == selected;
                 tile(g, tx, ty, tileW, capeH, sel, hot, accent);
                 Figure.blit(g, px, 64, 1, 1, 10, 16, tx + (tileW - 20) / 2, ty + 4, 2, false);
                 String n = mine ? "Yours" : Capes.NAMES[preset];
                 g.text(n, tx + (tileW - g.width(n)) / 2, ty + 38, sel ? skin.text : skin.dim, false);
-                if (!mine) addHit(tx, ty, tileW, capeH, () -> attempt(null, () -> SkinLibrary.setCape(Capes.make(preset))), null);
+                if (!mine) addHit(tx, ty, tileW, capeH, () -> {
+                    pendingCapeSet = true;
+                    pendingCape = Capes.make(preset);
+                }, null);
             }
         }
         ry += ((slot + cols - 1) / cols) * (capeH + 4);
-        g.text("Other Lumen players see your skin and cape too.", rx, ry + 2, skin.dim, false);
+        g.text(fit(g, "Other Lumen players see these too.", rw), rx, ry + 2, skin.dim, false);
         ry += 14;
-        return Math.max(cardH, ry - y) + 6;
+        return Math.max(stageH, ry - y) + 6;
     }
 
     private int settingsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
@@ -716,7 +858,7 @@ public final class LumenMenu {
         switch (s.kind) {
             case SWITCH -> {
                 g.text(s.label, x, y + 4, TEXT, false);
-                switchAt(g, x + w - 26, y + 4, s.getBool.getAsBoolean(), accent, skin.off);
+                switchAt(g, s, x + w - 26, y + 4, s.getBool.getAsBoolean(), accent, skin.off);
                 addHit(x, y, w, 18, () -> s.setBool.accept(!s.getBool.getAsBoolean()), null);
             }
             case SLIDER -> {
@@ -771,9 +913,11 @@ public final class LumenMenu {
         }
     }
 
-    private static void switchAt(Gfx g, int x, int y, boolean on, int accent, int off) {
-        Look.round(g, x, y, 22, 10, 5, on ? accent : off);
-        Look.round(g, on ? x + 13 : x + 1, y + 1, 8, 8, 4, 0xFFFFFFFF);
+    /** A switch whose knob slides and whose colour fades; {@code key} is what it belongs to, so the motion survives redraws. */
+    private void switchAt(Gfx g, Object key, int x, int y, boolean on, int accent, int off) {
+        double t = anim.ease(java.util.List.of("switch", key), on ? 1 : 0, 8);
+        Look.round(g, x, y, 22, 10, 5, Look.mix(off, accent, t));
+        Look.round(g, x + 1 + (int) Math.round(12 * t), y + 1, 8, 8, 4, 0xFFFFFFFF);
     }
 
     private static List<String> wrap(Gfx g, String text, int width) {
@@ -800,6 +944,7 @@ public final class LumenMenu {
 
     /** @return true when the click was inside the menu */
     public boolean press(double mx, double my, int button) {
+        pressX = mx;
         if (!inWindow(mx, my)) return false;
         if (button != 0) return true;
         for (int i = hits.size() - 1; i >= 0; i--) {
@@ -820,6 +965,11 @@ public final class LumenMenu {
     }
 
     public boolean drag(double mx, double my) {
+        if (turning) {
+            yaw += (mx - turnX) * 1.1;
+            turnX = mx;
+            return true;
+        }
         if (dragging == null) return false;
         setFromMouse(mx);
         return true;
@@ -827,6 +977,7 @@ public final class LumenMenu {
 
     public void release() {
         dragging = null;
+        turning = false;
     }
 
     private void setFromMouse(double mx) {

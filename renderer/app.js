@@ -1161,10 +1161,9 @@ VIEWS.settings = async (page) => {
 // Preview uses Minecraft's GUI-scaled space for 1280x720 at GUI scale 3, so offsets match in-game pixels.
 const HUD_W = 427;
 const HUD_H = 240;
-const HUD_EL = { fps: 'FPS', cps: 'CPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', keystrokes: 'Keystrokes', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status', death: 'Last death', alert: 'Durability alert', compass: 'Compass' };
+const HUD_EL = { fps: 'FPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status', death: 'Last death', alert: 'Durability alert', compass: 'Compass' };
 const HUD_OPTS = {
   coords: [['coordsFacing', 'Show facing'], ['coordsBiome', 'Show biome']],
-  keystrokes: [['keystrokesCps', 'CPS under mouse buttons'], ['keystrokesSpace', 'Space bar']],
   armor: [['armorDurability', 'Durability numbers'], ['armorHeldItem', 'Held item']],
   clock: [['clock24', '24-hour format']],
   memory: [['memoryShowMax', 'Show maximum']],
@@ -1210,7 +1209,6 @@ function hudElementHtml(id) {
   const a = (t) => `<span class="ha">${esc(t)}</span>`;
   switch (id) {
     case 'fps': return `<div class="hbox">${v('144')}${a(' FPS')}</div>`;
-    case 'cps': return `<div class="hbox">${v('7 | 2')}${a(' CPS')}</div>`;
     case 'ping': return `<div class="hbox">${v('32')}${a(' ms')}</div>`;
     case 'speed': return `<div class="hbox">${v('5.6')}${a(' b/s')}</div>`;
     case 'clock': return `<div class="hbox">${v(c.clock24 ? '21:45' : '9:45 PM')}</div>`;
@@ -1233,13 +1231,6 @@ function hudElementHtml(id) {
       <div>${a('XYZ')} ${v('-128 72 340')}</div>
       ${c.coordsFacing ? `<div>${a('Facing')} ${v('north (-Z)')}</div>` : ''}
       ${c.coordsBiome ? `<div>${a('Biome')} ${v('cherry grove')}</div>` : ''}</div>`;
-    case 'keystrokes': {
-      const k = (l, x, y, w, on, sub) => `<div class="hkey ${on ? 'on' : ''}" style="left:${x}px;top:${y}px;width:${w}px">${sub ? `<span style="margin-top:-4px">${l}</span><small>${sub}</small>` : l}</div>`;
-      return `<div class="hkeys" style="height:${c.keystrokesSpace ? 82 : 70}px">
-        ${k('W', 24, 0, 22, true)}${k('A', 0, 24, 22)}${k('S', 24, 24, 22)}${k('D', 48, 24, 22)}
-        ${k('LMB', 0, 48, 34, true, c.keystrokesCps ? '7 CPS' : '')}${k('RMB', 36, 48, 34, false, c.keystrokesCps ? '2 CPS' : '')}
-        ${c.keystrokesSpace ? '<div class="hkey space" style="left:0;top:72px;width:70px;height:10px"><i></i></div>' : ''}</div>`;
-    }
     case 'armor': {
       const rows = [['diamond_helmet', 363, '#55ff55'], ['iron_chestplate', 240, '#55ff55'], ['diamond_leggings', 15, '#ff5555'], ['golden_boots', 91, '#55ff55']];
       if (c.armorHeldItem) rows.push(['netherite_sword', 2031, '#55ff55']);

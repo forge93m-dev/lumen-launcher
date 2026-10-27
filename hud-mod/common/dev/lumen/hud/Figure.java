@@ -68,7 +68,7 @@ public final class Figure {
     }
 
     /** A plain stand-in for when no skin is chosen. */
-    private static int[] fallback() {
+    static int[] fallback() {
         if (fallback != null) return fallback;
         int[] p = new int[64 * 64];
         fill(p, 0, 0, 32, 16, 0xFFC69C6D); // head

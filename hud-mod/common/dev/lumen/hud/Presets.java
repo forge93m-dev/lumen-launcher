@@ -15,7 +15,7 @@ public final class Presets {
         Set<String> on;
         switch (index) {
             case 1 -> {
-                on = set("fps", "cps", "ping", "keystrokes", "armor", "items", "reach", "combo", "target", "alert", "effects");
+                on = set("fps", "ping", "armor", "items", "reach", "combo", "target", "alert", "effects");
                 cfg.theme = "flat";
             }
             case 2 -> {
@@ -27,7 +27,7 @@ public final class Presets {
                 cfg.theme = "minimal";
             }
             default -> {
-                on = set("fps", "cps", "coords", "keystrokes", "armor", "ping", "effects", "clock", "items", "target", "sprint", "death", "alert", "compass");
+                on = set("fps", "coords", "armor", "ping", "effects", "clock", "items", "target", "sprint", "death", "alert", "compass");
                 cfg.theme = "glass";
             }
         }

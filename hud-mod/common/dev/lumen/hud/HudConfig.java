@@ -36,9 +36,9 @@ public class HudConfig {
         }
     }
 
-    public static final String[] NAMES = {"FPS", "CPS", "Coordinates", "Keystrokes", "Armor", "Ping", "Speed", "Clock", "Potion effects", "Reach", "Combo", "Memory", "Session time", "Item counter", "Target info", "Server address", "Sprint status", "Last death", "Durability alert", "Compass"};
+    public static final String[] NAMES = {"FPS", "Coordinates", "Armor", "Ping", "Speed", "Clock", "Potion effects", "Reach", "Combo", "Memory", "Session time", "Item counter", "Target info", "Server address", "Sprint status", "Last death", "Durability alert", "Compass"};
 
-    public static final String[] IDS = {"fps", "cps", "coords", "keystrokes", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint", "death", "alert", "compass"};
+    public static final String[] IDS = {"fps", "coords", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint", "death", "alert", "compass"};
 
     public int version = 2;
     public String textColor = "#FFFFFF";
@@ -49,8 +49,6 @@ public class HudConfig {
     public boolean hideInDebug = true;
     public boolean coordsFacing = true;
     public boolean coordsBiome = true;
-    public boolean keystrokesCps = true;
-    public boolean keystrokesSpace = true;
     public boolean armorDurability = true;
     public boolean armorHeldItem = true;
     public boolean clock24 = true;
@@ -101,9 +99,7 @@ public class HudConfig {
     private static Element defaultElement(String id) {
         return switch (id) {
             case "fps" -> new Element(0, 0, 2, 2);
-            case "cps" -> new Element(0, 0, 2, 19);
             case "coords" -> new Element(0, 0, 2, 36);
-            case "keystrokes" -> new Element(1, 1, 2, 2);
             case "armor" -> new Element(1, 1, 76, 2);
             case "ping" -> new Element(0, 0, 2, 74);
             case "speed" -> {

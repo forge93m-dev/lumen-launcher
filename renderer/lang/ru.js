@@ -79,7 +79,7 @@
     'Return to title instantly while the world saves in the background.': 'Мгновенный выход в меню: мир сохраняется в фоне.',
     'Realistic reverb, occlusion and echo.': 'Реалистичные реверберация, заглушение и эхо.',
     'Detailed footstep sounds for every surface.': 'Подробные звуки шагов для каждой поверхности.',
-    'Our own HUD: FPS, CPS, ping, keystrokes, coordinates, armor, potion effects and more. Edit it in the HUD Editor.': 'Наш собственный HUD: FPS, CPS, пинг, клавиши, координаты, броня, эффекты зелий и не только. Настраивается в редакторе HUD.',
+    'Our own HUD: FPS, ping, coordinates, armor, potion effects and more. Edit it in the HUD Editor.': 'Наш собственный HUD: FPS, пинг, координаты, броня, эффекты зелий и не только. Настраивается в редакторе HUD.',
 
     // ----- browse, modpacks, project
     Mods: 'Моды', 'Resource Packs': 'Ресурспаки', Shaders: 'Шейдеры', Relevance: 'По релевантности', 'Most downloaded': 'Самые скачиваемые',
@@ -126,7 +126,7 @@
     'Lumen HUD is our own Fabric mod. Edits save instantly and apply live, even mid-game.': 'Lumen HUD — наш собственный мод для Fabric. Изменения сохраняются сразу и применяются в игре на лету.',
     'Right Shift in-game opens the editor too': 'Right Shift в игре тоже открывает редактор', 'Saved · applies live in-game': 'Сохранено · применяется в игре сразу',
     Elements: 'Элементы', 'Drag in the preview · scroll to resize · right-click to hide.': 'Перетаскивайте в превью · колесо меняет размер · правая кнопка скрывает.',
-    Ping: 'Пинг', Speed: 'Скорость', Clock: 'Часы', Coordinates: 'Координаты', Keystrokes: 'Клавиши', Armor: 'Броня', 'Potion effects': 'Эффекты зелий', Reach: 'Дальность удара', Combo: 'Комбо',
+    Ping: 'Пинг', Speed: 'Скорость', Clock: 'Часы', Coordinates: 'Координаты', Armor: 'Броня', 'Potion effects': 'Эффекты зелий', Reach: 'Дальность удара', Combo: 'Комбо',
     Memory: 'Память', 'Session time': 'Время сессии', 'Item counter': 'Счётчик предметов', 'Target info': 'Информация о цели', 'Server address': 'Адрес сервера', 'Sprint status': 'Статус спринта',
     'Show maximum': 'Показывать максимум', Totems: 'Тотемы', 'Golden apples': 'Золотые яблоки', 'Ender pearls': 'Жемчуг Эндера', 'End crystals': 'Кристаллы Энда',
     'Menu look': 'Вид меню', 'The in-game menu (Right Shift): its colours and what is behind it.': 'Меню в игре (Right Shift): его цвета и то, что за ним.',
@@ -165,7 +165,7 @@
     'Client features': 'Функции клиента', 'Work in-game, no extra mods needed.': 'Работают в игре, дополнительные моды не нужны.',
     'Toggle sprint': 'Авто-спринт', 'Keeps you sprinting while you hold W': 'Вы бежите, пока зажата W', Fullbright: 'Полная яркость', 'Dark caves and nights are fully lit': 'Тёмные пещеры и ночь полностью освещены',
     Zoom: 'Зум', 'Hold C in-game to zoom in': 'Зажмите C в игре, чтобы приблизить', 'Zoom field of view': 'Угол обзора при зуме',
-    'Show facing': 'Показывать направление', 'Show biome': 'Показывать биом', 'CPS under mouse buttons': 'CPS под кнопками мыши', 'Space bar': 'Пробел',
+    'Show facing': 'Показывать направление', 'Show biome': 'Показывать биом',
     'Durability numbers': 'Цифры прочности', 'Held item': 'Предмет в руке', '24-hour format': '24-часовой формат', Style: 'Стиль',
     'Applies to every element.': 'Применяется ко всем элементам.', 'Text colour': 'Цвет текста', Background: 'Фон', Opacity: 'Непрозрачность',
     'Text shadow': 'Тень текста', 'Hide when F3 is open': 'Скрывать при открытом F3', 'Reset layout & style': 'Сбросить расположение и стиль',

@@ -39,8 +39,6 @@ function defaults() {
     hideInDebug: true,
     coordsFacing: true,
     coordsBiome: true,
-    keystrokesCps: true,
-    keystrokesSpace: true,
     armorDurability: true,
     armorHeldItem: true,
     clock24: true,
@@ -64,9 +62,7 @@ function defaults() {
     menuDim: 0.55,
     elements: {
       fps: { enabled: true, ax: 0, ay: 0, x: 2, y: 2, scale: 1 },
-      cps: { enabled: true, ax: 0, ay: 0, x: 2, y: 19, scale: 1 },
       coords: { enabled: true, ax: 0, ay: 0, x: 2, y: 36, scale: 1 },
-      keystrokes: { enabled: true, ax: 1, ay: 1, x: 2, y: 2, scale: 1 },
       armor: { enabled: true, ax: 1, ay: 1, x: 76, y: 2, scale: 1 },
       ping: { enabled: true, ax: 0, ay: 0, x: 2, y: 74, scale: 1 },
       speed: { enabled: false, ax: 0, ay: 0, x: 2, y: 91, scale: 1 },
@@ -89,8 +85,8 @@ function defaults() {
 
 // Mirrors Presets.java: which elements are on, and the theme.
 const PRESETS = {
-  Default: { theme: 'glass', on: ['fps', 'cps', 'coords', 'keystrokes', 'armor', 'ping', 'effects', 'clock', 'items', 'target', 'sprint', 'death', 'alert', 'compass'] },
-  PvP: { theme: 'flat', on: ['fps', 'cps', 'ping', 'keystrokes', 'armor', 'items', 'reach', 'combo', 'target', 'alert', 'effects'] },
+  Default: { theme: 'glass', on: ['fps', 'coords', 'armor', 'ping', 'effects', 'clock', 'items', 'target', 'sprint', 'death', 'alert', 'compass'] },
+  PvP: { theme: 'flat', on: ['fps', 'ping', 'armor', 'items', 'reach', 'combo', 'target', 'alert', 'effects'] },
   Survival: { theme: 'glass', on: ['fps', 'coords', 'compass', 'clock', 'armor', 'effects', 'death', 'alert', 'target'] },
   Clean: { theme: 'minimal', on: ['fps', 'coords'] },
 };

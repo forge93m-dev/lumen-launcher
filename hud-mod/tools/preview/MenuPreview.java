@@ -32,11 +32,14 @@ public final class MenuPreview {
     static final class ImageGfx implements Gfx {
         final BufferedImage img;
         final Graphics2D g;
+        final Graphics2D raw;
         final FontMetrics fm;
 
         ImageGfx(BufferedImage img) {
             this.img = img;
+            raw = img.createGraphics();
             g = img.createGraphics();
+            g.scale(S, S);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
             g.setFont(FONT);
@@ -60,6 +63,26 @@ public final class MenuPreview {
         }
 
         @Override
+        public int scale() {
+            return S;
+        }
+
+        @Override
+        public void pixels(int[] argb, int w, int h, int x, int y) {
+            for (int j = 0; j < h; j++) {
+                for (int i = 0; i < w; i++) {
+                    if ((argb[j * w + i] >>> 24) == 0) continue;
+                    int px = x * S + i, py = y * S + j;
+                    if (px < 0 || py < 0 || px >= img.getWidth() || py >= img.getHeight()) continue;
+                    java.awt.Shape clip = g.getClip();
+                    if (clip != null && !clip.contains((px + 0.5) / S, (py + 0.5) / S)) continue;
+                    raw.setColor(new Color(argb[j * w + i], true));
+                    raw.fillRect(px, py, 1, 1);
+                }
+            }
+        }
+
+        @Override
         public int width(String s) {
             return (int) Math.ceil(FONT.getStringBounds(s, g.getFontRenderContext()).getWidth());
         }
@@ -75,9 +98,13 @@ public final class MenuPreview {
         }
     }
 
+    /** Screen pixels per drawing unit, like the game at GUI scale 3. */
+    static final int S = 3;
+
     static BufferedImage scene(int w, int h) {
-        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage img = new BufferedImage(w * S, h * S, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
+        g.scale(S, S);
         g.setColor(new Color(0x8CC4F5));
         g.fillRect(0, 0, w, h);
         g.setColor(new Color(0x5A9A3C));
@@ -90,6 +117,7 @@ public final class MenuPreview {
     }
 
     static void save(BufferedImage img, File dir, String name, int zoom) throws Exception {
+        zoom = Math.max(1, zoom / S); // the pictures are already drawn at screen resolution
         BufferedImage big = new BufferedImage(img.getWidth() * zoom, img.getHeight() * zoom, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = big.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -119,6 +147,16 @@ public final class MenuPreview {
         return p;
     }
 
+    static String diff(BufferedImage x, BufferedImage y) {
+        int n = 0, fx = -1, fy = -1;
+        for (int j = 0; j < x.getHeight(); j++) for (int i = 0; i < x.getWidth(); i++) if (x.getRGB(i, j) != y.getRGB(i, j) && n++ == 0) { fx = i; fy = j; }
+        return n + " pixels differ, first at " + fx + "," + fy;
+    }
+
+    static boolean sameImage(BufferedImage x, BufferedImage y) {
+        return java.util.Arrays.equals(x.getRGB(0, 0, x.getWidth(), x.getHeight(), null, 0, x.getWidth()), y.getRGB(0, 0, y.getWidth(), y.getHeight(), null, 0, y.getWidth()));
+    }
+
     static void check(boolean ok, String what) {
         if (!ok) {
             System.err.println("FAILED: " + what);
@@ -130,6 +168,7 @@ public final class MenuPreview {
     public static void main(String[] args) throws Exception {
         File dir = new File(args[0]);
         dir.mkdirs();
+        Motion.frozen = true; // finished frames for the pictures; the motion checks further down switch it off
         int w = args.length > 2 ? Integer.parseInt(args[1]) : 427;
         int h = args.length > 2 ? Integer.parseInt(args[2]) : 240;
         HudConfig cfg = HudConfig.get();
@@ -189,21 +228,31 @@ public final class MenuPreview {
         draw(s, w, h, 0, 0);
         java.util.List<int[]> skinTiles = s.hitsOfSize(44, 44);
         check(skinTiles.size() == 2 + 3, "the page lists Default, Add and the three library skins");
+        String wornBefore = SkinLibrary.active() == null ? null : SkinLibrary.active().id;
         s.press(skinTiles.get(3)[0], skinTiles.get(3)[1], 0);
+        check((SkinLibrary.active() == null ? null : SkinLibrary.active().id) == wornBefore || java.util.Objects.equals(wornBefore, SkinLibrary.active() == null ? null : SkinLibrary.active().id), "a click on a skin tile only previews it");
+        draw(s, w, h, 0, 0);
+        save(draw(s, w, h, 0, 0), dir, "9a-skin-previewed", 3);
+        s.equip();
         check(SkinLibrary.active() != null && SkinLibrary.active().name.equals("Rosalind"), "a click on a skin tile puts that skin on");
         check(Files.exists(FabricLoader.getInstance().getConfigDir().resolve("lumen-skin.png")), "the skin is written into the instance config");
         check(Files.readString(FabricLoader.getInstance().getConfigDir().resolve("lumen-skin.json")).contains("\"enabled\":true"), "the config says the skin is enabled");
         draw(s, w, h, 0, 0);
         save(draw(s, w, h, 0, 0), dir, "9-skin-picked", 3);
         s.press(skinTiles.get(0)[0], skinTiles.get(0)[1], 0);
+        s.equip();
         check(SkinLibrary.active() == null, "the Default tile goes back to the standard skin");
+        draw(s, w, h, 0, 0);
+        s.scrollTo(1000); // the capes are further down the page now
         draw(s, w, h, 0, 0);
         java.util.List<int[]> capeTiles = s.hitsOfSize(44, 50);
         check(capeTiles.size() == 2 + Capes.NAMES.length, "the page lists None, Add and the cape presets");
         s.press(capeTiles.get(4)[0], capeTiles.get(4)[1], 0);
+        s.equip();
         check(java.util.Arrays.equals(SkinLibrary.cape(), Capes.make(2)), "a click on a cape preset sets that cape");
         draw(s, w, h, 0, 0);
         s.press(capeTiles.get(0)[0], capeTiles.get(0)[1], 0);
+        s.equip();
         check(SkinLibrary.cape() == null, "the None tile takes the cape off");
 
         // old 64x32 skins are brought to 64x64, and the picture codec round-trips
@@ -219,6 +268,56 @@ public final class MenuPreview {
             refused = true;
         }
         check(refused, "something that is not a PNG is refused");
+
+        // motion: with a clock the test controls, the menu fades in, the page change fades, and a switch slides
+        Motion.frozen = false;
+        long[] now = {1000};
+        Motion.clock = () -> now[0];
+        LumenMenu settled = new LumenMenu();
+        Motion.frozen = true;
+        BufferedImage finished = draw(settled, w, h, 0, 0);
+        Motion.frozen = false;
+        LumenMenu a = new LumenMenu();
+        BufferedImage opening = draw(a, w, h, 0, 0);
+        BufferedImage frame = opening;
+        for (int i = 0; i < 12; i++) {
+            now[0] += 50;
+            frame = draw(a, w, h, 0, 0);
+        }
+        check(!sameImage(opening, frame), "the menu starts transparent and fades in");
+        check(sameImage(finished, frame), "after the fade the menu looks exactly like a finished frame " + diff(finished, frame));
+        int[] knob = a.firstCardToggle();
+        BufferedImage atRest = frame;
+        a.press(knob[0], knob[1], 0);
+        now[0] += 50;
+        BufferedImage midway = draw(a, w, h, 0, 0);
+        for (int i = 0; i < 12; i++) {
+            now[0] += 50;
+            frame = draw(a, w, h, 0, 0);
+        }
+        check(!sameImage(atRest, midway) && !sameImage(midway, frame), "a switch slides: its first frame differs from both ends");
+        int[] dock2 = a.dockSlot(1);
+        a.press(dock2[0], dock2[1], 0);
+        now[0] += 50;
+        BufferedImage turning = draw(a, w, h, 0, 0);
+        for (int i = 0; i < 12; i++) {
+            now[0] += 50;
+            frame = draw(a, w, h, 0, 0);
+        }
+        check(!sameImage(turning, frame), "a new page fades in");
+        LumenMenu hovered = new LumenMenu();
+        BufferedImage away = draw(hovered, w, h, 2, 2);
+        int[] cardAt = hovered.firstCardBody();
+        BufferedImage early = draw(hovered, w, h, cardAt[0], cardAt[1]);
+        for (int i = 0; i < 24; i++) {
+            now[0] += 50;
+            early = i == 0 ? draw(hovered, w, h, cardAt[0], cardAt[1]) : early;
+            frame = draw(hovered, w, h, cardAt[0], cardAt[1]);
+        }
+        check(!sameImage(away, frame) && !sameImage(early, frame), "resting on a module card shows what it does");
+        save(frame, dir, "10-tooltip", 3);
+        Motion.frozen = true;
+        Motion.clock = System::currentTimeMillis;
 
         // leave the library the mod wrote, so the launcher's own code can be tested against it
         SkinLibrary.setCape(Capes.make(1));

@@ -28,8 +28,6 @@ public final class HudRenderer {
 
     /** Screen-space bounds of every element drawn in the last frame (used by the editor). */
     public static final Map<String, Rect> RECTS = new LinkedHashMap<>();
-    private static final int KEY = 22;
-    private static final int GAP = 2;
     private static final int ROW = 17;
 
     private HudRenderer() {}
@@ -92,14 +90,12 @@ public final class HudRenderer {
         Font f = c.font;
         return switch (id) {
             case "fps" -> new int[]{f.width(c.getFps() + " FPS") + 8, 15};
-            case "cps" -> new int[]{f.width(cpsText() + " CPS") + 8, 15};
             case "coords" -> {
                 List<String[]> lines = coordLines(c, cfg);
                 int w = 0;
                 for (String[] l : lines) w = Math.max(w, f.width(l[0] + " " + l[1]));
                 yield new int[]{w + 8, lines.size() * 10 + 4};
             }
-            case "keystrokes" -> new int[]{3 * KEY + 2 * GAP, 3 * KEY + 2 * GAP + (cfg.keystrokesSpace ? GAP + 10 : 0)};
             case "armor" -> {
                 List<ItemStack> items = armorItems(c, cfg);
                 if (items.isEmpty()) yield editing ? new int[]{f.width("Armor") + 8, 15} : null;
@@ -159,7 +155,6 @@ public final class HudRenderer {
         Font f = c.font;
         switch (id) {
             case "fps" -> valueBox(g, f, cfg, String.valueOf(c.getFps()), " FPS", w, h);
-            case "cps" -> valueBox(g, f, cfg, cpsText(), " CPS", w, h);
             case "coords" -> {
                 panel(g, cfg, w, h);
                 int y = 3;
@@ -169,7 +164,6 @@ public final class HudRenderer {
                     y += 10;
                 }
             }
-            case "keystrokes" -> keystrokes(g, c, f, cfg);
             case "armor" -> {
                 panel(g, cfg, w, h);
                 List<ItemStack> items = armorItems(c, cfg);
@@ -293,10 +287,6 @@ public final class HudRenderer {
         g.text(f, s, x, y, color, cfg.shadow);
     }
 
-    private static String cpsText() {
-        return ClickTracker.left() + " | " + ClickTracker.right();
-    }
-
     private static List<String[]> coordLines(Minecraft c, HudConfig cfg) {
         List<String[]> out = new ArrayList<>();
         if (c.player == null) {
@@ -344,50 +334,6 @@ public final class HudRenderer {
         if (!st.isDamageableItem()) return cfg.text();
         double r = (st.getMaxDamage() - st.getDamageValue()) / (double) st.getMaxDamage();
         return r > 0.5 ? 0xFF55FF55 : r > 0.2 ? 0xFFFFFF55 : 0xFFFF5555;
-    }
-
-    private static void keystrokes(GuiGraphicsExtractor g, Minecraft c, Font f, HudConfig cfg) {
-        var o = c.options;
-        int step = KEY + GAP;
-        key(g, f, cfg, label(o.keyUp), step, 0, KEY, KEY, o.keyUp.isDown(), null);
-        key(g, f, cfg, label(o.keyLeft), 0, step, KEY, KEY, o.keyLeft.isDown(), null);
-        key(g, f, cfg, label(o.keyDown), step, step, KEY, KEY, o.keyDown.isDown(), null);
-        key(g, f, cfg, label(o.keyRight), 2 * step, step, KEY, KEY, o.keyRight.isDown(), null);
-        int half = (3 * KEY + 2 * GAP - GAP) / 2;
-        key(g, f, cfg, "LMB", 0, 2 * step, half, KEY, o.keyAttack.isDown(), cfg.keystrokesCps ? ClickTracker.left() + " CPS" : null);
-        key(g, f, cfg, "RMB", half + GAP, 2 * step, half, KEY, o.keyUse.isDown(), cfg.keystrokesCps ? ClickTracker.right() + " CPS" : null);
-        if (cfg.keystrokesSpace) {
-            int y = 3 * step;
-            int w = 3 * KEY + 2 * GAP;
-            Look.key(new GfxImpl(g, f), cfg, 0, y, w, 10, Anim.ease("key:space", o.keyJump.isDown(), 9));
-            g.fill(w / 2 - 12, y + 4, w / 2 + 12, y + 5, cfg.text());
-        }
-    }
-
-    private static void key(GuiGraphicsExtractor g, Font f, HudConfig cfg, String label, int x, int y, int w, int h, boolean pressed, String sub) {
-        Look.key(new GfxImpl(g, f), cfg, x, y, w, h, Anim.ease("key:" + label + x + y, pressed, 9));
-        if (sub == null) {
-            text(g, f, cfg, label, x + (w - f.width(label)) / 2, y + (h - 8) / 2, cfg.text());
-            return;
-        }
-        text(g, f, cfg, label, x + (w - f.width(label)) / 2, y + 3, cfg.text());
-        Matrix3x2fStack m = g.pose();
-        m.pushMatrix();
-        m.translate(x + w / 2f, y + 13);
-        m.scale(0.6f, 0.6f);
-        g.text(f, sub, -f.width(sub) / 2, 0, cfg.text(), false);
-        m.popMatrix();
-    }
-
-    private static String label(KeyMapping k) {
-        // 26.x binds physical scancodes (A = 4 … Z = 29); show Latin letters regardless of layout.
-        InputConstants.Key key = KeyMappingHelper.getBoundKeyOf(k);
-        int code = key.getValue();
-        if (key.getName().startsWith("key.keyboard.") && code >= InputConstants.KEY_A && code <= InputConstants.KEY_Z) {
-            return String.valueOf((char) ('A' + code - InputConstants.KEY_A));
-        }
-        String s = k.getTranslatedKeyMessage().getString().toUpperCase();
-        return s.length() > 3 ? s.substring(0, 3) : s;
     }
 
     /** "Low durability: Iron Helmet 8%" for the worst worn piece or held tool at or below the limit, else null. */

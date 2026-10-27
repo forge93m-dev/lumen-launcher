@@ -24,6 +24,20 @@ final class GfxImpl implements Gfx {
     }
 
     @Override
+    public int scale() {
+        return Math.max(1, (int) Math.round(net.minecraft.client.MinecraftClient.getInstance().getWindow().getScaleFactor()));
+    }
+
+    @Override
+    public void pixels(int[] argb, int w, int h, int x, int y) {
+        int s = scale();
+        Matrices.push(ctx);
+        Matrices.scale(ctx, 1f / s, 1f / s);
+        Smooth.emit(argb, w, h, x * s, y * s, (x1, y1, x2, y2, c) -> ctx.fill(x1, y1, x2, y2, c));
+        Matrices.pop(ctx);
+    }
+
+    @Override
     public int width(String s) {
         return tr.getWidth(UiFont.of(s));
     }

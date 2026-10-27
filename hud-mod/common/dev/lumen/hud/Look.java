@@ -31,6 +31,10 @@ public final class Look {
             g.fill(x, y, x + w, y + h, color);
             return;
         }
+        if (g.scale() > 1) {
+            Smooth.roundRect(g, x, y, w, h, r, color);
+            return;
+        }
         for (int i = 0; i < r; i++) {
             double dy = r - i - 0.5;
             int inset = (int) Math.round(r - Math.sqrt(r * r - dy * dy));
