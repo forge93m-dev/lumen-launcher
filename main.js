@@ -421,6 +421,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     fs.mkdirSync(paths.instances, { recursive: true });
     createWindow();
+    if (store.load().settings.checkUpdates !== false) setTimeout(() => checkUpdate(false), 8000);
   });
 }
 // An error nobody caught (a failed download inside a callback, say) would otherwise take the launcher down with
@@ -437,6 +438,32 @@ function logError(kind, err) {
 }
 process.on('uncaughtException', (e) => logError('uncaughtException', e));
 process.on('unhandledRejection', (e) => logError('unhandledRejection', e));
+// ---- launcher updates
+const updater = require('./core/updater');
+let pendingUpdate = null;
+const updateAddress = (cfg) => cfg.settings.updateUrl || require('./core/service.json').update || '';
+async function checkUpdate(manual) {
+  const cfg = store.load();
+  try {
+    const r = await updater.check(app.getVersion(), updateAddress(cfg));
+    pendingUpdate = r.available ? r : null;
+    if (r.available) send('update:available', { version: r.version, notes: r.notes });
+    return { configured: r.configured, current: r.current, available: !!r.available, version: r.version, notes: r.notes };
+  } catch (e) {
+    if (manual) throw e;
+    logError('update check', e);
+    return { configured: true, current: app.getVersion(), available: false };
+  }
+}
+handle('update:check', () => checkUpdate(true));
+handle('update:install', async () => {
+  if (!pendingUpdate) throw new Error('There is no update to install');
+  const file = await updater.fetchInstaller(pendingUpdate, path.join(app.getPath('temp'), 'lumen-update'), (p) => send('update:progress', p));
+  const err = await shell.openPath(file);
+  if (err) throw new Error(err);
+  setTimeout(() => app.quit(), 1500);
+  return true;
+});
 handle('app:logPath', () => LOG_FILE);
 handle('app:openLog', () => (fs.existsSync(LOG_FILE) ? shell.showItemInFolder(LOG_FILE) : false));
 app.on('render-process-gone', (_e, wc, details) => {

@@ -47,6 +47,34 @@ final class Smooth {
         });
     }
 
+    /** A frame {@code t} units thick around a rounded box (a ring when {@code r} is half the size), as one soft-edged texture. */
+    static void frame(Gfx g, int x, int y, int w, int h, int r, int t, int color) {
+        int s = g.scale();
+        int pw = w * s, ph = h * s;
+        double radius = r * s, thick = t * s;
+        java.util.function.Supplier<int[]> make = () -> {
+            int[] px = new int[pw * ph];
+            for (int j = 0; j < ph; j++) {
+                for (int i = 0; i < pw; i++) {
+                    double qx = Math.abs(i + 0.5 - pw / 2.0) - (pw / 2.0 - radius), qy = Math.abs(j + 0.5 - ph / 2.0) - (ph / 2.0 - radius);
+                    double d = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius; // negative inside
+                    double a = Math.max(0, Math.min(1, 0.5 - d)) * Math.max(0, Math.min(1, d + thick + 0.5));
+                    px[j * pw + i] = (Math.round((float) (255 * a)) << 24) | 0xFFFFFF;
+                }
+            }
+            return px;
+        };
+        int tex = g.texture("frame" + pw + "x" + ph + "r" + r + "t" + t, make, pw, ph);
+        if (tex >= 0) {
+            g.blit(tex, x, y, w, h, color);
+            return;
+        }
+        int[] px = make.get();
+        int alpha = color >>> 24, rgb = color & 0xFFFFFF;
+        for (int i = 0; i < px.length; i++) px[i] = (Math.round(alpha * (px[i] >>> 24) / 255f) << 24) | rgb;
+        g.pixels(px, pw, ph, x, y);
+    }
+
     /** A rectangle with round corners: straight parts are plain fills, the four corners are anti-aliased pictures. */
     static void roundRect(Gfx g, int x, int y, int w, int h, int r, int color) {
         int s = g.scale();

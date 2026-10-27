@@ -85,6 +85,7 @@ for (const version of VERSIONS) {
     }
     // Client features: toggle sprint, fullbright and zoom change the game's own options and give them back.
     const feat = (re) => lines.find((l) => re.test(l)) || '';
+    assert.match(feat(/selftest: chat /), /stamped=[1-9]\d* hidden=[1-9]/, 'chat lines must get a time and a repeat must be hidden');
     assert.match(feat(/selftest: sprint=/), /sprint=true gamma=16\.0/, 'toggle sprint and fullbright must take effect');
     assert.match(feat(/selftest: zoom fov=/), /fov=30(?!\d)/, 'zoom must narrow the field of view');
     const restored = /restored fov=(\d+) gamma=([\d.]+)/.exec(feat(/selftest: restored/));

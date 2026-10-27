@@ -229,6 +229,13 @@ function render() {
   page.className = S.enter ? 'page enter' : 'page'; // fade in on navigation only, not on every re-render
   S.enter = false;
   el.appendChild(page);
+  if (S.launcherUpdate) {
+    const b = document.createElement('div');
+    b.className = 'update-banner';
+    b.innerHTML = `<div class="grow"><b>Lumen Client ${esc(S.launcherUpdate.version)} is available</b><div class="small dim">${esc(S.launcherUpdate.notes || 'A newer version of the launcher is ready.')}</div></div>
+      <button class="btn primary" data-act="update-install">${S.launcherUpdate.busy ? 'Downloading…' : 'Install update'}</button>`;
+    page.appendChild(b);
+  }
   (VIEWS[S.view] || VIEWS.home)(page);
   renderDock();
 }
@@ -1104,6 +1111,15 @@ VIEWS.settings = async (page) => {
       </div>
 
       <div class="card panel">
+        <h3>Updates</h3><p>The launcher can look for a newer version of itself.</p>
+        <div class="stack">
+          <div class="opt"><div><div class="k">Check at start-up</div></div><button class="switch ${st.checkUpdates !== false ? 'on' : ''}" data-act="setting-toggle" data-k="checkUpdates"></button></div>
+          <div class="opt"><div><div class="k">Update address</div><div class="d">Where the launcher asks for the newest version. Empty uses the built-in address.</div></div><input class="input" id="update-url" style="width:260px" placeholder="https://…/latest.json" value="${esc(st.updateUrl || '')}"></div>
+          <div class="opt"><div><div class="k" id="update-status">${S.launcherUpdate ? `Version ${esc(S.launcherUpdate.version)} is available` : 'Check now to see if there is a newer version'}</div></div><button class="btn" data-act="update-check">Check now</button></div>
+        </div>
+      </div>
+
+      <div class="card panel">
         <h3>Launcher</h3><p>Appearance and behaviour.</p>
         <div class="stack">
           <div class="opt"><div><div class="k">Language</div></div><select class="input" id="lang" style="width:190px"><option value="auto" ${(st.language || 'auto') === 'auto' ? 'selected' : ''}>Auto (as in system)</option><option value="en" ${st.language === 'en' ? 'selected' : ''}>English</option><option value="ru" ${st.language === 'ru' ? 'selected' : ''}>Русский</option></select></div>
@@ -1147,6 +1163,7 @@ VIEWS.settings = async (page) => {
   $('#w').addEventListener('change', (e) => saveCfg({ settings: { width: +e.target.value || 1280 } }));
   $('#h').addEventListener('change', (e) => saveCfg({ settings: { height: +e.target.value || 720 } }));
   $('#jvm').addEventListener('change', (e) => saveCfg({ settings: { jvmArgs: e.target.value.trim() } }));
+  $('#update-url').addEventListener('change', (e) => saveCfg({ settings: { updateUrl: e.target.value.trim() } }));
   $('#java').addEventListener('change', (e) => saveCfg({ settings: { javaPath: e.target.value.trim() } }));
   $('#add-acc').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1161,13 +1178,12 @@ VIEWS.settings = async (page) => {
 // Preview uses Minecraft's GUI-scaled space for 1280x720 at GUI scale 3, so offsets match in-game pixels.
 const HUD_W = 427;
 const HUD_H = 240;
-const HUD_EL = { fps: 'FPS', ping: 'Ping', speed: 'Speed', clock: 'Clock', coords: 'Coordinates', armor: 'Armor', effects: 'Potion effects', reach: 'Reach', combo: 'Combo', memory: 'Memory', session: 'Session time', items: 'Item counter', target: 'Target info', server: 'Server address', sprint: 'Sprint status', death: 'Last death', alert: 'Durability alert', compass: 'Compass' };
+const HUD_EL = { fps: 'FPS', ping: 'Ping', coords: 'Coordinates', armor: 'Armor', effects: 'Potion effects', items: 'Item counter', target: 'Target info', death: 'Last death', alert: 'Durability alert', compass: 'Compass', minimap: 'Minimap' };
 const HUD_OPTS = {
   coords: [['coordsFacing', 'Show facing'], ['coordsBiome', 'Show biome']],
   armor: [['armorDurability', 'Durability numbers'], ['armorHeldItem', 'Held item']],
-  clock: [['clock24', '24-hour format']],
-  memory: [['memoryShowMax', 'Show maximum']],
   death: [['deathChat', 'Say it in chat after respawn']],
+  minimap: [['minimapRotate', 'Turn with you'], ['minimapMobs', 'Mobs'], ['minimapPlayers', 'Players'], ['minimapWaypoints', 'Waypoints'], ['minimapCoords', 'Coordinates']],
   items: [['itemsTotems', 'Totems'], ['itemsGapples', 'Golden apples'], ['itemsPearls', 'Ender pearls'], ['itemsCrystals', 'End crystals']],
 };
 // Which versions have a Lumen HUD build is decided in core/hud.js; the page asks once at start-up.
@@ -1210,17 +1226,10 @@ function hudElementHtml(id) {
   switch (id) {
     case 'fps': return `<div class="hbox">${v('144')}${a(' FPS')}</div>`;
     case 'ping': return `<div class="hbox">${v('32')}${a(' ms')}</div>`;
-    case 'speed': return `<div class="hbox">${v('5.6')}${a(' b/s')}</div>`;
-    case 'clock': return `<div class="hbox">${v(c.clock24 ? '21:45' : '9:45 PM')}</div>`;
-    case 'reach': return `<div class="hbox">${v('3.12')}${a(' blocks')}</div>`;
-    case 'combo': return `<div class="hbox">${v('4')}${a(' combo')}</div>`;
-    case 'memory': return `<div class="hbox">${v(c.memoryShowMax ? '1480/4096' : '1480')}${a(' MB')}</div>`;
-    case 'session': return `<div class="hbox">${v('1:12:40')}</div>`;
-    case 'server': return `<div class="hbox">${v('play.example.net')}</div>`;
+    case 'minimap': return `<div class="hbox minimap ${c.minimapShape === 'square' ? 'square' : ''}"><div class="mmap"><i class="mw"></i><i class="mp"></i><b class="mn">N</b><s class="ma"></s></div>${c.minimapCoords ? '<span class="ha mc">100  64  80</span>' : ''}</div>`;
     case 'compass': return `<div class="hbox compass"><div class="cstrip"><b>W</b><i></i><i></i><b class="c">N</b><i></i><i></i><b>E</b><i></i><i></i><b>S</b></div><div class="cdot" style="left:112px;background:#10b981"></div><div class="chead"></div></div>`;
     case 'death': return `<div class="hbox">${a('Death')} ${v('-120 64 310 (Overworld)')}</div>`;
     case 'alert': return `<div class="hbox">${`<span style="color:#ff5555">Low durability: Iron Helmet ${c.durabilityPercent}%</span>`}</div>`;
-    case 'sprint': return `<div class="hbox">${a('Sprinting (toggled)')}</div>`;
     case 'target': return `<div class="hbox">${v('Zombie')}${a('  14/20')}<div class="hbar"><i style="width:70%"></i></div></div>`;
     case 'items': {
       const rows = [[c.itemsTotems, '#e9c46a', 2], [c.itemsGapples, '#f4a261', 5], [c.itemsPearls, '#2a9d8f', 16], [c.itemsCrystals, '#c77dff', 8]].filter((r) => r[0]);
@@ -1367,6 +1376,7 @@ function hudRenderPanel() {
         <div><div class="opt"><span class="k">${HUD_EL[sel]} size</span><b>${Math.round((c.elements[sel].scale || 1) * 100)}%</b></div>
           <input type="range" id="hud-scale" min="0.5" max="3" step="0.1" value="${c.elements[sel].scale || 1}" style="--p:${(((c.elements[sel].scale || 1) - 0.5) / 2.5) * 100}%;margin-top:8px"></div>
         ${(HUD_OPTS[sel] || []).map(([k, l]) => `<div class="opt"><span>${l}</span>${sw(c[k], 'hud-opt', k)}</div>`).join('')}
+        ${sel === 'minimap' ? `<div><div class="opt small"><span class="muted">View distance (blocks)</span><span>${c.minimapZoom}</span></div><input type="range" id="hud-minimap-zoom" min="16" max="64" step="8" value="${c.minimapZoom}" style="--p:${((c.minimapZoom - 16) / 48) * 100}%;margin-top:6px"></div><div class="opt"><span>Square shape</span>${sw(c.minimapShape === 'square', 'hud-shape', 'minimapShape')}</div>` : ''}
         ${sel === 'alert' ? `<div><div class="opt small"><span class="muted">Warn below</span><span>${c.durabilityPercent}%</span></div><input type="range" id="hud-durability" min="5" max="50" step="1" value="${c.durabilityPercent}" style="--p:${((c.durabilityPercent - 5) / 45) * 100}%;margin-top:6px"></div>` : ''}
       </div>` : ''}
     </div>
@@ -1377,6 +1387,12 @@ function hudRenderPanel() {
         <div class="opt"><span>Toggle sneak<div class="small dim">Press the sneak key once to sneak, again to stop</div></span>${sw(c.toggleSneak, 'hud-opt', 'toggleSneak')}</div>
         <div class="opt"><span>Freelook<div class="small dim">Hold Left Alt to look around without turning</div></span>${sw(c.freelook, 'hud-opt', 'freelook')}</div>
         <div class="opt"><span>Fullbright<div class="small dim">Dark caves and nights are fully lit</div></span>${sw(c.fullbright, 'hud-opt', 'fullbright')}</div>
+        <div class="opt"><span>Chat timestamps<div class="small dim">The time before every chat line</div></span>${sw(c.chatTimestamps, 'hud-opt', 'chatTimestamps')}</div>
+        <div class="opt"><span>24-hour format</span>${sw(c.clock24, 'hud-opt', 'clock24')}</div>
+        <div class="opt"><span>Hide repeated chat lines<div class="small dim">The same line within a few seconds is shown once</div></span>${sw(c.chatHideRepeats, 'hud-opt', 'chatHideRepeats')}</div>
+        <div><div class="opt small"><span class="muted">Hide chat lines with these words (comma separated)</span></div><input type="text" id="hud-chatmute" value="${esc(c.chatMute || '')}" placeholder="word, another word" style="margin-top:6px"></div>
+        <div class="opt"><span>Damage numbers<div class="small dim">The damage of each hit rises from the crosshair</div></span>${sw(c.damageNumbers, 'hud-opt', 'damageNumbers')}</div>
+        <div class="opt"><span>Hit marker<div class="small dim">A small marker flashes when a hit lands</div></span>${sw(c.hitMarker, 'hud-opt', 'hitMarker')}</div>
         <div class="opt"><span>Zoom<div class="small dim">Hold C in-game to zoom in</div></span>${sw(c.zoom, 'hud-opt', 'zoom')}</div>
         ${c.zoom ? `<div class="opt"><span>Smooth zoom</span>${sw(c.smoothZoom, 'hud-opt', 'smoothZoom')}</div>` : ''}
         ${c.zoom ? `<div><div class="opt small"><span class="muted">Zoom field of view</span><span>${c.zoomFov}°</span></div>
@@ -1436,6 +1452,18 @@ function hudRenderPanel() {
     c.menuDim = +md.value;
     md.style.setProperty('--p', `${(md.value / 0.95) * 100}%`);
     md.parentElement.querySelector('.opt span:last-child').textContent = `${Math.round(md.value * 100)}%`;
+    hudSave();
+  });
+  const cm = $('#hud-chatmute');
+  if (cm) cm.addEventListener('change', () => {
+    c.chatMute = cm.value;
+    hudSave();
+  });
+  const mz = $('#hud-minimap-zoom');
+  if (mz) mz.addEventListener('input', () => {
+    c.minimapZoom = +mz.value;
+    mz.style.setProperty('--p', `${((mz.value - 16) / 48) * 100}%`);
+    mz.parentElement.querySelector('.opt span:last-child').textContent = mz.value;
     hudSave();
   });
   const du = $('#hud-durability');
@@ -1959,6 +1987,36 @@ const ACTIONS = {
     hudRenderPanel();
     hudSave();
   },
+  'update-check': async () => {
+    const st = $('#update-status');
+    if (st) st.textContent = 'Checking…';
+    try {
+      const r = await api.call('update:check');
+      if (r.available) S.launcherUpdate = { version: r.version, notes: r.notes };
+      if (st) st.textContent = !r.configured ? 'No update address is set' : r.available ? `Version ${r.version} is available` : 'You have the newest version';
+      if (r.available) render();
+    } catch (e) {
+      if (st) st.textContent = e.message;
+    }
+  },
+  'update-install': async () => {
+    if (!S.launcherUpdate || S.launcherUpdate.busy) return;
+    S.launcherUpdate.busy = true;
+    render();
+    try {
+      await api.call('update:install');
+    } catch (e) {
+      S.launcherUpdate.busy = false;
+      render();
+      toast(e.message, 'err');
+    }
+  },
+  'hud-shape': () => {
+    S.hud.cfg.minimapShape = S.hud.cfg.minimapShape === 'square' ? 'circle' : 'square';
+    hudRenderPreview();
+    hudRenderPanel();
+    hudSave();
+  },
   'hud-opt': (d) => {
     S.hud.cfg[d.k] = !S.hud.cfg[d.k];
     hudRenderPreview();
@@ -2113,6 +2171,10 @@ api.onState(async (s) => {
 });
 
 // A skin or cape was changed from inside the game: show it on the Skin page.
+api.onUpdate((u) => {
+  S.launcherUpdate = { version: u.version, notes: u.notes };
+  render();
+});
 api.onSkins(async () => {
   const r = await api.call('skins:list').catch(() => null);
   if (!r) return;

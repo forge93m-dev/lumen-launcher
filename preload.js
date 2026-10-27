@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld('lumen', {
   onError: on('app:error'),
   onCrash: on('game:crash'),
   onSkins: on('skins:changed'),
+  onUpdate: on('update:available'),
+  onUpdateProgress: on('update:progress'),
 });

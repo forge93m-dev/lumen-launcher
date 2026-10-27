@@ -73,6 +73,35 @@ final class GfxImpl implements Gfx {
         return UiTextures.count();
     }
 
+    private static final java.util.Map<Integer, DynamicTexture> LIVE = new java.util.HashMap<>();
+
+    @Override
+    public int dynamicTexture(String key, int w, int h) {
+        int known = UiTextures.lookup(key);
+        if (known != UiTextures.UNKNOWN) return known;
+        try {
+            int handle = UiTextures.count();
+            DynamicTexture tex = new DynamicTexture(() -> "lumenhud live", w, h, false);
+            Minecraft.getInstance().getTextureManager().register(Identifier.fromNamespaceAndPath("lumenhud", UiTextures.path(handle)), tex);
+            LIVE.put(handle, tex);
+            return UiTextures.add(key, w, h);
+        } catch (Exception e) {
+            LumenHud.LOG.warn("Could not make the live texture {}", key, e);
+            UiTextures.failed(key);
+            return -1;
+        }
+    }
+
+    @Override
+    public void updateTexture(int handle, int[] argb) {
+        DynamicTexture tex = LIVE.get(handle);
+        if (tex == null) return;
+        NativeImage img = tex.getPixels();
+        int w = img.getWidth();
+        for (int i = 0; i < argb.length; i++) img.setPixel(i % w, i / w, argb[i]);
+        tex.upload();
+    }
+
     @Override
     public void blit(int handle, int x, int y, int w, int h, int tint) {
         int[] size = UiTextures.size(handle);

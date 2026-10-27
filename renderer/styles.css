@@ -319,6 +319,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .theme-minimal .hbox { background: transparent; }
 .hbar { height: 2px; margin-top: 4px; background: rgba(0, 0, 0, .4); }
 .hbar i { display: block; height: 2px; background: linear-gradient(90deg, #e84545, #45d45b); }
+.hbox.minimap, .theme-glass .hbox.minimap { background: none; box-shadow: none; padding: 0; width: 90px; }
+.mmap { position: relative; width: 84px; height: 84px; margin: 3px; border-radius: 50%; border: 2px solid var(--ha); box-sizing: border-box;
+  background: linear-gradient(125deg, #7fb238 0 32%, #8f7655 32% 38%, #4a6bff 38% 62%, #7fb238 62% 80%, #e6e6e6 80%); box-shadow: 0 0 0 3px rgba(11, 11, 18, .85); }
+.hbox.minimap.square .mmap { border-radius: 8px; }
+.mmap .mw, .mmap .mp { position: absolute; width: 7px; height: 7px; border-radius: 50%; border: 1px solid #000; box-sizing: border-box; }
+.mmap .mw { background: #10b981; left: 58px; top: 14px; }
+.mmap .mp { background: #ef4444; left: 46px; top: 36px; }
+.mmap .ma { position: absolute; left: 33px; top: 31px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 13px solid #fff; transform: rotate(140deg); filter: drop-shadow(0 0 1px #000); }
+.mmap .mn { position: absolute; left: 50%; top: -11px; transform: translateX(-50%); font-weight: 400; font-size: 8px; color: var(--ha); background: rgba(11, 11, 18, .9); border-radius: 6px; padding: 1px 4px; }
+.hbox.minimap .mc { display: block; text-align: center; margin-top: 2px; }
 .hbox.compass { width: 180px; height: 22px; padding: 0; position: relative; overflow: hidden; }
 .cstrip { display: flex; justify-content: space-around; align-items: flex-start; padding-top: 3px; }
 .cstrip b { font-weight: 400; }
@@ -393,3 +403,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .gfx-card.on { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: var(--accent-soft); }
 .gfx-card b { font-size: 15px; }
 .gfx-card span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+.update-banner { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 12px 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--card, #1b1b26)); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }

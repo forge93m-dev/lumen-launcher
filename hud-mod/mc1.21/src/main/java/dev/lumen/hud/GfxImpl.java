@@ -52,6 +52,25 @@ final class GfxImpl implements Gfx {
     }
 
     @Override
+    public int dynamicTexture(String key, int w, int h) {
+        int known = UiTextures.lookup(key);
+        if (known != UiTextures.UNKNOWN) return known;
+        try {
+            Tex.live(UiTextures.path(UiTextures.count()), w, h);
+            return UiTextures.add(key, w, h);
+        } catch (Exception e) {
+            LumenHud.LOG.warn("Could not make the live texture {}", key, e);
+            UiTextures.failed(key);
+            return -1;
+        }
+    }
+
+    @Override
+    public void updateTexture(int handle, int[] argb) {
+        Tex.update(UiTextures.path(handle), argb, UiTextures.size(handle)[0]);
+    }
+
+    @Override
     public void blit(int handle, int x, int y, int w, int h, int tint) {
         int[] size = UiTextures.size(handle);
         Tex.blit(ctx, UiTextures.path(handle), x, y, w, h, size[0], size[1], tint);

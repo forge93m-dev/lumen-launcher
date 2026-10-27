@@ -60,6 +60,7 @@ public class LumenHud implements ClientModInitializer {
                 var b = entity.getBoundingBox();
                 ReachTracker.record(eye.x, eye.y, eye.z, b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ);
                 ComboTracker.hit();
+                if (entity instanceof net.minecraft.entity.LivingEntity living) HitFeedback.attacked(entity, living.getHealth());
             }
             return ActionResult.PASS;
         });
@@ -72,6 +73,8 @@ public class LumenHud implements ClientModInitializer {
             if (client.player != null) SpeedTracker.tick(client.player.getX(), client.player.getZ());
             else SpeedTracker.reset();
             ComboTracker.tick(client.player != null && client.player.hurtTime > 0);
+            if (HitFeedback.watching() instanceof net.minecraft.entity.LivingEntity living) HitFeedback.health(living.getHealth(), !living.isAlive());
+            if (client.player != null && HudConfig.get().el("minimap").enabled) Minimap.tick(MinimapSource.INSTANCE, client.player.getX(), client.player.getY(), client.player.getZ());
             features(client);
             if (SELFTEST && client.player != null) selfTest(client);
         });
@@ -180,6 +183,11 @@ public class LumenHud implements ClientModInitializer {
             for (var other : client.world.getPlayers()) {
                 if (other != client.player) LOG.info("selftest: remote {} {} at {} {} {} (me {} {} {})", other.getName().getString(), SkinHooks.describe(other), (int) other.getX(), (int) other.getY(), (int) other.getZ(), (int) client.player.getX(), (int) client.player.getY(), (int) client.player.getZ());
             }
+        }
+        if (worldTicks == 130 || worldTicks == 135 || worldTicks == 140) { // the chat box stamps lines and hides a repeat
+            client.player.sendMessage(net.minecraft.text.Text.literal("lumen chat test " + (worldTicks == 140 ? "b" : "a")), false);
+        } else if (worldTicks == 150) {
+            LOG.info("selftest: chat {}", ChatTweaks.report());
         }
         if (worldTicks == 170) {
             LOG.info("selftest: skin {}", SkinHooks.describe(client));

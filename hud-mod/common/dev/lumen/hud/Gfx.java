@@ -27,6 +27,14 @@ public interface Gfx {
         return -1;
     }
 
+    /** A texture the caller rewrites every frame ({@link #updateTexture}); -1 when this graphics cannot do textures. */
+    default int dynamicTexture(String key, int w, int h) {
+        return -1;
+    }
+
+    default void updateTexture(int handle, int[] argb) {
+    }
+
     /** Draws an uploaded picture into a box of drawing units, multiplying it by the colour {@code tint}. */
     default void blit(int handle, int x, int y, int w, int h, int tint) {
     }

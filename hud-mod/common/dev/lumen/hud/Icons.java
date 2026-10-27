@@ -43,6 +43,9 @@ public final class Icons {
         def("sneak", "c 8.4 3 1.9; l 8.2 5.4 7.6 9.4 2.2; l 7.6 9.4 4.8 13.4 1.7; l 7.6 9.4 10.8 13.4 1.7; l 8 6.4 5 8.6 1.5; l 8 6.4 11 8.4 1.5");
         def("back", "l 12.8 8 3.6 8 1.9; l 3.6 8 7.8 3.8 1.9; l 3.6 8 7.8 12.2 1.9");
         def("check", "l 3 8.6 6.6 12.2 2.1; l 6.6 12.2 13 4.6 2.1");
+        def("pointer", "p 8 1.2 13.4 14.2 8 11.2 2.6 14.2");
+        def("map", "p 1.8 3.8 5.8 2.2 10.2 3.8 14.2 2.2 14.2 12.2 10.2 13.8 5.8 12.2 1.8 13.8; -l 5.8 2.6 5.8 11.8 .9; -l 10.2 4.2 10.2 13.4 .9");
+        def("chat", "r 1.8 2.4 12.4 8.6 2.4; p 4.4 10 4.4 14.2 8.8 10; -l 4.6 5.2 11.4 5.2 1.1; -l 4.6 7.8 9 7.8 1.1");
         def("cape", "p 5.2 1.8 10.8 1.8 13.6 14.2 2.4 14.2; -r 6.4 1.2 3.2 2.2 1.1; -l 8 5 8 12 .8");
     }
 
@@ -83,7 +86,34 @@ public final class Icons {
         g.pixels(px, size, size, x, y);
     }
 
+    /** Draws the icon turned clockwise by {@code degrees} (in steps of 5), {@code units} wide. */
+    public static void rotated(Gfx g, String name, int x, int y, int units, int color, double degrees) {
+        if (!ICONS.containsKey(name)) return;
+        int s = g.scale();
+        int size = units * s;
+        int angle = (int) (Math.round(((degrees % 360) + 360) % 360 / 5.0) * 5) % 360;
+        float[] mask = MASKS.computeIfAbsent(name + "|" + size + "|" + angle, k -> rasterize(ICONS.get(name), size, angle));
+        int tex = g.texture("icon" + name + "|" + size + "|" + angle, () -> {
+            int[] white = new int[size * size];
+            for (int i = 0; i < white.length; i++) white[i] = (Math.round(255 * mask[i]) << 24) | 0xFFFFFF;
+            return white;
+        }, size, size);
+        // a dark edge first, so the arrow reads on any ground
+        if (tex >= 0) {
+            g.blit(tex, x - 1, y - 1, units + 2, units + 2, 0xB0000000);
+            g.blit(tex, x, y, units, units, color);
+            return;
+        }
+        int[] px = new int[size * size];
+        for (int i = 0; i < px.length; i++) px[i] = mask[i] <= 0 ? 0 : (Math.round((color >>> 24) * mask[i]) << 24) | (color & 0xFFFFFF);
+        g.pixels(px, size, size, x, y);
+    }
+
     private static float[] rasterize(String shapes, int size) {
+        return rasterize(shapes, size, 0);
+    }
+
+    private static float[] rasterize(String shapes, int size, int angle) {
         String[] parts = shapes.split(";");
         char[] kind = new char[parts.length];
         boolean[] cut = new boolean[parts.length];
@@ -100,6 +130,7 @@ public final class Icons {
             for (int k = 1; k < t.length; k++) arg[i][k - 1] = Double.parseDouble(t[k]);
         }
         float[] out = new float[size * size];
+        double cosA = Math.cos(Math.toRadians(angle)), sinA = Math.sin(Math.toRadians(angle));
         int n = 3; // samples per pixel side
         double unit = 16.0 / size;
         for (int py = 0; py < size; py++) {
@@ -109,6 +140,11 @@ public final class Icons {
                     for (int sx = 0; sx < n; sx++) {
                         double fx = (px + (sx + 0.5) / n) * unit;
                         double fy = (py + (sy + 0.5) / n) * unit;
+                        if (angle != 0) { // turn the sample point the other way round the middle of the 16x16 box
+                            double dx = fx - 8, dy = fy - 8;
+                            fx = 8 + dx * cosA + dy * sinA;
+                            fy = 8 - dx * sinA + dy * cosA;
+                        }
                         boolean in = false;
                         for (int i = 0; i < parts.length; i++) if (covers(kind[i], arg[i], fx, fy)) in = !cut[i];
                         if (in) hit++;

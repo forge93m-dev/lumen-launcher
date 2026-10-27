@@ -53,6 +53,7 @@ public final class HudRenderer {
         RECTS.clear();
         int sw = ctx.getScaledWindowWidth();
         int sh = ctx.getScaledWindowHeight();
+        if (!editing && !force) HitFeedback.draw(new GfxImpl(ctx, c.textRenderer), cfg, sw / 2, sh / 2);
         for (String id : HudConfig.IDS) {
             HudConfig.Element el = cfg.el(id);
             if (!el.enabled && !editing) continue;
@@ -103,11 +104,8 @@ public final class HudRenderer {
                 yield new int[]{20 + w + (w > 0 ? 4 : 0), items.size() * ROW + 2};
             }
             case "ping" -> new int[]{tr.getWidth(pingText(c) + " ms") + 8, 15};
-            case "speed" -> new int[]{tr.getWidth(SpeedTracker.text() + " b/s") + 8, 15};
-            case "reach" -> new int[]{tr.getWidth(ReachTracker.text() + " blocks") + 8, 15};
-            case "combo" -> new int[]{tr.getWidth(ComboTracker.text() + " combo") + 8, 15};
-            case "clock" -> new int[]{tr.getWidth(clockText(cfg)) + 8, 15};
             case "compass" -> new int[]{Compass.WIDTH, Compass.HEIGHT};
+            case "minimap" -> new int[]{Minimap.width(cfg), Minimap.height(cfg)};
             case "death" -> {
                 String d = DeathTracker.last();
                 if (d == null) yield editing ? new int[]{tr.getWidth("Last death") + 8, 15} : null;
@@ -117,13 +115,6 @@ public final class HudRenderer {
                 String a = alertText(c, cfg);
                 if (a == null) yield editing ? new int[]{tr.getWidth("Durability alert") + 8, 15} : null;
                 yield new int[]{tr.getWidth(a) + 8, 15};
-            }
-            case "memory" -> new int[]{tr.getWidth(Stats.memory(cfg.memoryShowMax) + " MB") + 8, 15};
-            case "session" -> new int[]{tr.getWidth(Stats.session()) + 8, 15};
-            case "server" -> new int[]{tr.getWidth(serverText(c)) + 8, 15};
-            case "sprint" -> {
-                if (!cfg.toggleSprint && !editing) yield null;
-                yield new int[]{tr.getWidth(sprintText(c)) + 8, 15};
             }
             case "items" -> {
                 List<Object[]> rows = itemRows(c, cfg);
@@ -180,12 +171,10 @@ public final class HudRenderer {
                 }
             }
             case "ping" -> valueBox(ctx, tr, cfg, pingText(c), " ms", w, h);
-            case "speed" -> valueBox(ctx, tr, cfg, SpeedTracker.text(), " b/s", w, h);
-            case "reach" -> valueBox(ctx, tr, cfg, ReachTracker.text(), " blocks", w, h);
-            case "combo" -> valueBox(ctx, tr, cfg, ComboTracker.text(), " combo", w, h);
-            case "clock" -> {
-                panel(ctx, cfg, w, h);
-                text(ctx, tr, cfg, clockText(cfg), 4, 4, cfg.text());
+            case "minimap" -> {
+                var pl = c.player;
+                String dim = c.world == null ? "" : Stats.dimension(c.world.getRegistryKey().getValue().getPath());
+                if (pl != null) Minimap.draw(new GfxImpl(ctx, tr), cfg, MinimapSource.INSTANCE, pl.getX(), pl.getY(), pl.getZ(), Freelook.active() ? Freelook.yaw() : pl.getYaw(), Waypoints.in(dim));
             }
             case "compass" -> {
                 var pl = c.player;
@@ -211,19 +200,6 @@ public final class HudRenderer {
                     return;
                 }
                 text(ctx, tr, cfg, a, 4, 4, Stats.blink() ? 0xFFFF5555 : 0xFFFFAA55);
-            }
-            case "memory" -> valueBox(ctx, tr, cfg, Stats.memory(cfg.memoryShowMax), " MB", w, h);
-            case "session" -> {
-                panel(ctx, cfg, w, h);
-                text(ctx, tr, cfg, Stats.session(), 4, 4, cfg.text());
-            }
-            case "server" -> {
-                panel(ctx, cfg, w, h);
-                text(ctx, tr, cfg, serverText(c), 4, 4, cfg.text());
-            }
-            case "sprint" -> {
-                panel(ctx, cfg, w, h);
-                text(ctx, tr, cfg, sprintText(c), 4, 4, cfg.accent());
             }
             case "items" -> {
                 panel(ctx, cfg, w, h);

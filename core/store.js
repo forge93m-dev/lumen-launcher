@@ -19,6 +19,8 @@ const DEFAULTS = {
     language: 'auto', // 'auto' follows the system, or 'en' / 'ru'
     showSnapshots: false,
     accent: '#8b5cf6',
+    checkUpdates: true, // look for a newer launcher at start-up (needs an update address)
+    updateUrl: '', // overrides the address built into core/service.json
   },
   cloud: { url: '', share: true, others: true, token: '' }, // the Lumen skin service (core/cloud.js)
   servers: [

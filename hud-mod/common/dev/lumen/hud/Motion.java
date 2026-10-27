@@ -67,6 +67,16 @@ final class Motion {
         }
 
         @Override
+        public int dynamicTexture(String key, int w, int h) {
+            return base.dynamicTexture(key, w, h);
+        }
+
+        @Override
+        public void updateTexture(int handle, int[] argb) {
+            base.updateTexture(handle, argb);
+        }
+
+        @Override
         public void blit(int handle, int x, int y, int w, int h, int tint) {
             base.blit(handle, x, y, w, h, Look.alpha(tint, alpha));
         }

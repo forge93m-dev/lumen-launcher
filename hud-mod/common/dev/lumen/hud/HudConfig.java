@@ -36,9 +36,9 @@ public class HudConfig {
         }
     }
 
-    public static final String[] NAMES = {"FPS", "Coordinates", "Armor", "Ping", "Speed", "Clock", "Potion effects", "Reach", "Combo", "Memory", "Session time", "Item counter", "Target info", "Server address", "Sprint status", "Last death", "Durability alert", "Compass"};
+    public static final String[] NAMES = {"FPS", "Coordinates", "Armor", "Ping", "Potion effects", "Item counter", "Target info", "Last death", "Durability alert", "Compass", "Minimap"};
 
-    public static final String[] IDS = {"fps", "coords", "armor", "ping", "speed", "clock", "effects", "reach", "combo", "memory", "session", "items", "target", "server", "sprint", "death", "alert", "compass"};
+    public static final String[] IDS = {"fps", "coords", "armor", "ping", "effects", "items", "target", "death", "alert", "compass", "minimap"};
 
     public int version = 2;
     public String textColor = "#FFFFFF";
@@ -49,10 +49,25 @@ public class HudConfig {
     public boolean hideInDebug = true;
     public boolean coordsFacing = true;
     public boolean coordsBiome = true;
+    /** Blocks from the middle to the edge of the minimap (16..64), circle | square, and what it shows. */
+    public int minimapZoom = 32;
+    public String minimapShape = "circle";
+    public boolean minimapRotate = false;
+    public boolean minimapMobs = true;
+    public boolean minimapPlayers = true;
+    public boolean minimapWaypoints = true;
+    public boolean minimapCoords = true;
+    /** Numbers rising from the crosshair when you hurt something, a marker on the hit, and their colour. */
+    /** Better chat: the time before each line, repeated lines hidden, and words that hide a line (comma separated). */
+    public boolean chatTimestamps = true;
+    public boolean chatHideRepeats = true;
+    public String chatMute = "";
+    public boolean damageNumbers = true;
+    public boolean hitMarker = true;
+    public String hitColor = "#EF4444";
     public boolean armorDurability = true;
     public boolean armorHeldItem = true;
     public boolean clock24 = true;
-    public boolean memoryShowMax = true;
     public boolean itemsTotems = true;
     public boolean itemsGapples = true;
     public boolean itemsPearls = true;
@@ -102,31 +117,12 @@ public class HudConfig {
             case "coords" -> new Element(0, 0, 2, 36);
             case "armor" -> new Element(1, 1, 76, 2);
             case "ping" -> new Element(0, 0, 2, 74);
-            case "speed" -> {
-                Element e = new Element(0, 0, 2, 91);
-                e.enabled = false;
-                yield e;
-            }
-            case "reach" -> {
-                Element e = new Element(1, 0, 2, 19);
-                e.enabled = false;
-                yield e;
-            }
-            case "combo" -> {
-                Element e = new Element(1, 0, 2, 36);
-                e.enabled = false;
-                yield e;
-            }
-            case "memory" -> disabled(1, 0, 2, 148);
-            case "session" -> disabled(1, 0, 2, 130);
-            case "server" -> disabled(0, 1, 2, 60);
-            case "items" -> new Element(1, 0, 2, 53);
+            case "items" -> new Element(1, 0, 2, 128);
             case "target" -> new Element(0.5, 0, 0, 28);
-            case "sprint" -> new Element(0, 1, 2, 40);
             case "death" -> new Element(0.5, 0, 0, 52);
             case "alert" -> new Element(0.5, 0, 0, 70);
             case "compass" -> new Element(0.5, 0, 0, 2);
-            case "clock" -> new Element(1, 0, 2, 2);
+            case "minimap" -> new Element(1, 0, 6, 26);
             case "effects" -> new Element(0, 0, 2, 110);
             default -> new Element(0, 0, 2, 2);
         };
@@ -188,6 +184,10 @@ public class HudConfig {
 
     public int text() {
         return parseColor(textColor, 0xFFFFFFFF);
+    }
+
+    public int hit() {
+        return parseColor(hitColor, 0xFFEF4444);
     }
 
     public int accent() {

@@ -33,6 +33,7 @@ public final class MenuPreview {
         final BufferedImage img;
         final Graphics2D g;
         final Graphics2D raw;
+        int ox, oy;
         final FontMetrics fm;
 
         ImageGfx(BufferedImage img) {
@@ -68,13 +69,20 @@ public final class MenuPreview {
             return S;
         }
 
+        /** Moves the origin, in drawing units, so a piece of the HUD can be photographed anywhere. */
+        void shift(int x, int y) {
+            g.translate(x, y);
+            ox = x;
+            oy = y;
+        }
+
         @Override
         public void pixels(int[] argb, int w, int h, int x, int y) {
             Smooth.emit(argb, w, h, 0, 0, (a, b, c, d, e) -> fills++); // what the game would be asked to fill
             for (int j = 0; j < h; j++) {
                 for (int i = 0; i < w; i++) {
                     if ((argb[j * w + i] >>> 24) == 0) continue;
-                    int px = x * S + i, py = y * S + j;
+                    int px = (x + ox) * S + i, py = (y + oy) * S + j;
                     if (px < 0 || py < 0 || px >= img.getWidth() || py >= img.getHeight()) continue;
                     java.awt.Shape clip = g.getClip();
                     if (clip != null && !clip.contains((px + 0.5) / S, (py + 0.5) / S)) continue;
@@ -278,6 +286,50 @@ public final class MenuPreview {
             refused = true;
         }
         check(refused, "something that is not a PNG is refused");
+
+        // the minimap on a made-up world
+        Minimap.Source fake = new Minimap.Source() {
+            public boolean ready() { return true; }
+            public Object world() { return this; }
+            public boolean hasCeiling() { return false; }
+            public boolean column(int x, int z, int fromY, int[] out) {
+                double h = 64 + 9 * Math.sin(x * 0.07) * Math.cos(z * 0.05) + 5 * Math.sin((x + z) * 0.13);
+                boolean water = h < 62;
+                out[0] = water ? 0x4A6BFF : h > 70 ? 0xE6E6E6 : (x / 7 + z / 9) % 5 == 0 ? 0x8F7655 : 0x7FB238;
+                out[1] = (int) Math.round(water ? 62 : h);
+                out[2] = water ? (int) Math.min(12, 62 - h) : 0;
+                return true;
+            }
+            public void entities(java.util.List<double[]> list, double px, double pz, double radius) {
+                list.add(new double[]{px + 10, pz - 6, 1});
+                list.add(new double[]{px - 14, pz + 9, 2});
+                list.add(new double[]{px + 4, pz + 18, 0});
+            }
+        };
+        for (int i = 0; i < 40; i++) Minimap.tick(fake, 100.5, 64, 80.5);
+        Waypoints.Point wp = new Waypoints.Point();
+        wp.name = "Home";
+        wp.x = 120;
+        wp.z = 60;
+        wp.color = 0xFF10B981;
+        for (String shape : new String[]{"circle", "square"}) {
+            cfg.minimapShape = shape;
+            BufferedImage mini = scene(160, 130);
+            ImageGfx mg = new ImageGfx(mini);
+            Skin.backdrop(mg, 160, 130, false);
+            mg.shift(38, 20);
+            Minimap.draw(mg, cfg, fake, 100.5, 64, 80.5, 140, java.util.List.of(wp));
+            save(mini, dir, "11-minimap-" + shape, 3);
+        }
+        cfg.minimapShape = "circle";
+        cfg.minimapRotate = true;
+        BufferedImage turned = scene(160, 130);
+        ImageGfx tg = new ImageGfx(turned);
+        Skin.backdrop(tg, 160, 130, false);
+        tg.shift(38, 20);
+        Minimap.draw(tg, cfg, fake, 100.5, 64, 80.5, 140, java.util.List.of(wp));
+        save(turned, dir, "11-minimap-turned", 3);
+        cfg.minimapRotate = false;
 
         // motion: with a clock the test controls, the menu fades in, the page change fades, and a switch slides
         Motion.frozen = false;

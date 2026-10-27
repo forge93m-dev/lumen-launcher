@@ -141,7 +141,7 @@ public final class LumenMenu {
             Map.entry("armor", "shield"), Map.entry("effects", "flask"), Map.entry("items", "bag"),
             Map.entry("target", "target"), Map.entry("alert", "warn"), Map.entry("death", "skull"), Map.entry("reach", "ruler"),
             Map.entry("combo", "flame"), Map.entry("speed", "arrow"), Map.entry("clock", "clock"), Map.entry("session", "hourglass"),
-            Map.entry("memory", "chip"), Map.entry("server", "server"), Map.entry("sprint", "boot"), Map.entry("compass", "compass"));
+            Map.entry("memory", "chip"), Map.entry("server", "server"), Map.entry("sprint", "boot"), Map.entry("compass", "compass"), Map.entry("minimap", "map"));
 
     private static Module element(String id, String desc) {
         String name = HudConfig.NAMES[java.util.Arrays.asList(HudConfig.IDS).indexOf(id)];
@@ -155,6 +155,14 @@ public final class LumenMenu {
         out.add(element("fps", "Shows how many frames the game draws every second. Higher is smoother; below 30 you will feel the lag."));
         out.add(element("compass", "A strip at the top that shows which way you face, with markers for your waypoints. Add one with /lumen wp add <name>."));
         out.add(element("ping", "How long the server takes to answer you, in milliseconds. Lower is better; it is empty in single player."));
+        out.add(element("minimap", "A map of the blocks around you, drawn from above, with nearby players, mobs and your waypoints on it. Zoom shows how far it sees.")
+                .with(Setting.slider("Zoom", 16, 64, 8, " blocks", () -> HudConfig.get().minimapZoom, v -> HudConfig.get().minimapZoom = (int) v))
+                .with(Setting.choice("Shape", new String[]{"circle", "square"}, () -> "square".equals(HudConfig.get().minimapShape) ? 1 : 0, i -> HudConfig.get().minimapShape = i == 1 ? "square" : "circle"))
+                .with(Setting.sw("Turn with you", () -> HudConfig.get().minimapRotate, v -> HudConfig.get().minimapRotate = v))
+                .with(Setting.sw("Mobs", () -> HudConfig.get().minimapMobs, v -> HudConfig.get().minimapMobs = v))
+                .with(Setting.sw("Players", () -> HudConfig.get().minimapPlayers, v -> HudConfig.get().minimapPlayers = v))
+                .with(Setting.sw("Waypoints", () -> HudConfig.get().minimapWaypoints, v -> HudConfig.get().minimapWaypoints = v))
+                .with(Setting.sw("Coordinates", () -> HudConfig.get().minimapCoords, v -> HudConfig.get().minimapCoords = v)));
         out.add(element("coords", "Your X, Y and Z, the direction you are facing and the biome you stand in, without opening the F3 screen.")
                 .with(Setting.sw("Show facing", () -> HudConfig.get().coordsFacing, v -> HudConfig.get().coordsFacing = v))
                 .with(Setting.sw("Show biome", () -> HudConfig.get().coordsBiome, v -> HudConfig.get().coordsBiome = v)));
@@ -172,21 +180,19 @@ public final class LumenMenu {
                 .with(Setting.slider("Warn below", 5, 50, 1, "%", () -> HudConfig.get().durabilityPercent, v -> HudConfig.get().durabilityPercent = (int) v)));
         out.add(element("death", "Remembers where you died last, with the dimension, so you can go and fetch your items.")
                 .with(Setting.sw("Say it in chat after respawn", () -> HudConfig.get().deathChat, v -> HudConfig.get().deathChat = v)));
-        out.add(element("reach", "Shows the distance of your last hit, to see how close you really were."));
-        out.add(element("combo", "Counts the hits you land in a row without being hurt. It resets when you take damage."));
-        out.add(element("speed", "Your speed in blocks per second, useful for checking sprint, elytra and boats."));
-        out.add(element("clock", "The real time of day on your computer, so you never lose track while playing.")
-                .with(Setting.sw("24-hour format", () -> HudConfig.get().clock24, v -> HudConfig.get().clock24 = v)));
-        out.add(element("session", "How long you have been playing in this session."));
-        out.add(element("memory", "How much memory the game is using out of what it may take. If it fills up, give the game more RAM in the launcher.")
-                .with(Setting.sw("Show maximum", () -> HudConfig.get().memoryShowMax, v -> HudConfig.get().memoryShowMax = v)));
-        out.add(element("server", "The address of the server you are connected to."));
-        out.add(element("sprint", "Tells you when toggle sprint is keeping you running."));
 
         out.add(new Module("CLIENT", "Toggle sprint", "Keeps you sprinting until you stop, so you do not have to hold the sprint key.", () -> HudConfig.get().toggleSprint, v -> HudConfig.get().toggleSprint = v).icon("boot"));
         out.add(new Module("CLIENT", "Toggle sneak", "Press the sneak key once to sneak and again to stop, instead of holding it.", () -> HudConfig.get().toggleSneak, v -> HudConfig.get().toggleSneak = v).icon("sneak"));
         out.add(new Module("CLIENT", "Freelook", "Hold Left Alt to look around your player without turning where you walk or aim.", () -> HudConfig.get().freelook, v -> HudConfig.get().freelook = v).icon("eye"));
         out.add(new Module("CLIENT", "Fullbright", "Makes everything fully bright, so caves and nights are as light as day.", () -> HudConfig.get().fullbright, v -> HudConfig.get().fullbright = v).icon("sun"));
+        out.add(new Module("CLIENT", "Better chat", "Puts the time before every chat line and hides a line that repeats within a few seconds. Words that hide a line are set in the Lumen launcher (HUD Editor).", () -> HudConfig.get().chatTimestamps || HudConfig.get().chatHideRepeats, v -> HudConfig.get().chatTimestamps = HudConfig.get().chatHideRepeats = v).icon("chat")
+                .with(Setting.sw("Timestamps", () -> HudConfig.get().chatTimestamps, v -> HudConfig.get().chatTimestamps = v))
+                .with(Setting.sw("24-hour time", () -> HudConfig.get().clock24, v -> HudConfig.get().clock24 = v))
+                .with(Setting.sw("Hide repeats", () -> HudConfig.get().chatHideRepeats, v -> HudConfig.get().chatHideRepeats = v)));
+        out.add(new Module("CLIENT", "Hit feedback", "Shows how much damage each of your hits did as a number above the crosshair, and flashes a small marker when a hit lands.", () -> HudConfig.get().damageNumbers || HudConfig.get().hitMarker, v -> HudConfig.get().damageNumbers = HudConfig.get().hitMarker = v).icon("target")
+                .with(Setting.sw("Damage numbers", () -> HudConfig.get().damageNumbers, v -> HudConfig.get().damageNumbers = v))
+                .with(Setting.sw("Hit marker", () -> HudConfig.get().hitMarker, v -> HudConfig.get().hitMarker = v))
+                .with(Setting.swatches("Hit colour", PALETTE, () -> HudConfig.get().hitColor, v -> HudConfig.get().hitColor = v)));
         out.add(new Module("CLIENT", "Zoom", "Hold C to zoom in on far things, like a spyglass. The field of view below sets how far.", () -> HudConfig.get().zoom, v -> HudConfig.get().zoom = v).icon("zoom")
                 .with(Setting.slider("Field of view", 5, 60, 1, "°", () -> HudConfig.get().zoomFov, v -> HudConfig.get().zoomFov = (int) v))
                 .with(Setting.sw("Smooth zoom", () -> HudConfig.get().smoothZoom, v -> HudConfig.get().smoothZoom = v)));
