@@ -48,6 +48,7 @@ public final class MenuPreview {
 
         @Override
         public void fill(int x1, int y1, int x2, int y2, int argb) {
+            fills++;
             g.setColor(new Color(argb, true));
             g.fillRect(x1, y1, x2 - x1, y2 - y1);
         }
@@ -69,6 +70,7 @@ public final class MenuPreview {
 
         @Override
         public void pixels(int[] argb, int w, int h, int x, int y) {
+            Smooth.emit(argb, w, h, 0, 0, (a, b, c, d, e) -> fills++); // what the game would be asked to fill
             for (int j = 0; j < h; j++) {
                 for (int i = 0; i < w; i++) {
                     if ((argb[j * w + i] >>> 24) == 0) continue;
@@ -100,6 +102,8 @@ public final class MenuPreview {
 
     /** Screen pixels per drawing unit, like the game at GUI scale 3. */
     static final int S = 3;
+    /** Rectangles the game would be asked to draw: what costs time in the real menu. */
+    static int fills;
 
     static BufferedImage scene(int w, int h) {
         BufferedImage img = new BufferedImage(w * S, h * S, BufferedImage.TYPE_INT_ARGB);
@@ -175,7 +179,10 @@ public final class MenuPreview {
         for (String id : HudConfig.IDS) cfg.el(id);
 
         LumenMenu m = new LumenMenu();
-        save(draw(m, w, h, 0, 0), dir, "1-modules", 3);
+        fills = 0;
+        BufferedImage modulesFrame = draw(m, w, h, 0, 0);
+        System.out.println("rectangles on the modules page: " + fills);
+        save(modulesFrame, dir, "1-modules", 3);
         m.show(0, "Zoom");
         save(draw(m, w, h, 0, 0), dir, "2-module-zoom", 3);
         m.show(1, null);
@@ -186,7 +193,10 @@ public final class MenuPreview {
         for (int i = 0; i < 3; i++) SkinLibrary.add(Png.encode(sampleSkin(palette[i][0], palette[i][1], 64), 64, 64), names[i]);
         SkinLibrary.setCape(Capes.make(0));
         m.show(2, null);
-        save(draw(m, w, h, 0, 0), dir, "4-cosmetics", 3);
+        fills = 0;
+        BufferedImage cos = draw(m, w, h, 0, 0);
+        System.out.println("rectangles on the cosmetics page: " + fills);
+        save(cos, dir, "4-cosmetics", 3);
         m.turnFigure();
         save(draw(m, w, h, 0, 0), dir, "4b-cosmetics-back", 3);
         m.turnFigure();

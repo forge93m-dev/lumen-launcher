@@ -268,7 +268,7 @@ public final class LumenMenu {
     }
 
     void turnFigure() {
-        yaw += 180;
+        bias = -bias;
     }
 
     void scrollTo(double to) {
@@ -312,7 +312,22 @@ public final class LumenMenu {
         return anim.ease(key, over ? 1 : 0, 8);
     }
 
+    private long frameNanos;
+    private int frames;
+
     public void render(Gfx raw, int sw, int sh, int mx, int my) {
+        long began = System.nanoTime();
+        draw(raw, sw, sh, mx, my);
+        if (SELFTEST && ++frames % 60 == 0) {
+            System.out.println("selftest: menu frame " + (frameNanos / 60 / 1000) + " us on page " + PAGE_TITLES[page]);
+            frameNanos = 0;
+        }
+        frameNanos += System.nanoTime() - began;
+    }
+
+    private static final boolean SELFTEST = Boolean.getBoolean("lumenhud.selftest");
+
+    private void draw(Gfx raw, int sw, int sh, int mx, int my) {
         hits.clear();
         inContent = false;
         tipModule = null;
@@ -464,6 +479,7 @@ public final class LumenMenu {
     }
 
     private void card(Gfx g, Module m, int tint, int x, int y, int w, int h, int accent, int mx, int my) {
+        if (y + h < contentTop || y > contentBottom) return; // scrolled out of view: nothing to draw
         boolean over = mx >= x && mx < x + w && my >= y && my < y + h && my >= contentTop && my < contentBottom;
         if (over) tipModule = m;
         Look.round(g, x, y, w, h, 6, Look.mix(skin.card, skin.cardHover, hover(java.util.List.of("card", m), over)));
@@ -627,10 +643,11 @@ public final class LumenMenu {
     private String pendingSkin;
     private boolean pendingCapeSet;
     private int[] pendingCape;
-    private double yaw = 28;
+    /** How far the players are turned (radians): a slow turntable, plus what the mouse dragged them to. */
+    private double spin;
+    private double bias;
     private boolean turning;
     private double turnX, pressX;
-    private final java.util.Map<String, int[]> pictures = new java.util.LinkedHashMap<>();
 
     /** Puts on what is picked in the wardrobe. */
     void equip() {
@@ -650,16 +667,6 @@ public final class LumenMenu {
         pendingCape = null;
     }
 
-    /** A picture of the player at this angle; the last few are kept, so a still pose costs nothing. */
-    private int[] model(int[] pixels, boolean slim, int[] cape, int w, int h) {
-        String key = java.util.Arrays.hashCode(pixels) + ":" + slim + ":" + java.util.Arrays.hashCode(cape) + ":" + Math.round(yaw) + ":" + w + "x" + h;
-        int[] img = pictures.remove(key);
-        if (img == null) img = PlayerModel.render(pixels, slim, cape, Math.round(yaw), w, h);
-        pictures.put(key, img);
-        while (pictures.size() > 8) pictures.remove(pictures.keySet().iterator().next());
-        return img;
-    }
-
     /** The player in 3D on the left, as they look now and as they would look after the change, and the skins and capes to pick from on the right. */
     private int cosmeticsPage(Gfx g, int x, int y, int cw, int accent, int mx, int my) {
         FilePicker.Result picked = FilePicker.take();
@@ -667,7 +674,7 @@ public final class LumenMenu {
             dropPending();
             finishPick(picked);
         }
-        if (!turning) yaw = (yaw + anim.dt * 26) % 360;
+        if (!turning) spin += anim.dt * 0.7;
         List<SkinLibrary.Entry> library = SkinLibrary.skins();
         SkinLibrary.Entry active = SkinLibrary.active();
         int[] cape = SkinLibrary.cape();
@@ -688,12 +695,18 @@ public final class LumenMenu {
         int s = g.scale();
         int left = x + 8;
         int right = x + stageW - 8 - mw;
+        double turn = bias + spin;
         for (int i = 0; i < 2; i++) {
             SkinLibrary.Entry who = i == 0 ? active : chosen;
-            int[] img = model(who == null ? null : SkinLibrary.pixels(who), who != null && who.slim(), i == 0 ? cape : chosenCape, mw * s, mh * s);
+            int[] pixels = who == null ? null : SkinLibrary.pixels(who);
+            boolean slim = who != null && who.slim();
+            int[] worn = i == 0 ? cape : chosenCape;
             int mxp = i == 0 ? left : right;
             Look.round(g, mxp + 12, y + mh - 4, mw - 24, 6, 3, Look.withAlpha(0xFF000000, 0x40)); // the floor under the feet
-            g.pixels(img, mw * s, mh * s, mxp, y + 6);
+            // the game draws its own player model: the left one as worn now, the right one in what is picked
+            if (!g.player(mxp, y + 4, mxp + mw, y + 4 + mh, turn, i == 1, pixels, slim, worn)) {
+                Figure.body(g, pixels, slim, worn, false, mxp + (mw - 48) / 2, y + 10, 3);
+            }
             String label = i == 0 ? "Now" : "After";
             g.text(label, mxp + (mw - g.width(label)) / 2, y + mh + 3, i == 1 && changed ? accent : skin.dim, false);
         }
@@ -729,7 +742,7 @@ public final class LumenMenu {
             String n = "Choose a file in the window that opened…";
             g.text(n, rx + rw - g.width(n), ry, skin.dim, false);
         } else {
-            String n = "Drag the players to turn them";
+            String n = "Drag to turn the players";
             g.text(n, rx + rw - g.width(n), ry, skin.dim, false);
         }
         ry += 13;
@@ -966,7 +979,7 @@ public final class LumenMenu {
 
     public boolean drag(double mx, double my) {
         if (turning) {
-            yaw += (mx - turnX) * 1.1;
+            bias += (mx - turnX) * 0.03;
             turnX = mx;
             return true;
         }

@@ -74,6 +74,7 @@ for (const version of VERSIONS) {
     } finally {
       server.kill();
     }
+    console.log(lines.filter((l) => /selftest: menu frame/.test(l)).map((l) => `${version} ${l.trim()}`).join('\n'));
     const bad = lines.filter((l) => /Mixin apply.*failed|InvalidInjection|Incompatible mod|NoSuchMethodError|NoSuchFieldError|NoClassDefFoundError|Could not execute entrypoint|Lumen HUD.*(Exception|error)/i.test(l));
     assert.deepEqual(bad, [], 'the mod must load cleanly');
     assert.ok(lines.some((l) => /Lumen HUD ready/.test(l)), 'Lumen HUD should report that it is ready');

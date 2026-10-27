@@ -57,6 +57,21 @@ final class Motion {
         }
 
         @Override
+        public boolean player(int x1, int y1, int x2, int y2, double turn, boolean preview, int[] skin, boolean slim, int[] cape) {
+            return alpha >= 0.99 && base.player(x1, y1, x2, y2, turn, preview, skin, slim, cape); // the game cannot fade its models
+        }
+
+        @Override
+        public int texture(String key, java.util.function.Supplier<int[]> argb, int w, int h) {
+            return base.texture(key, argb, w, h);
+        }
+
+        @Override
+        public void blit(int handle, int x, int y, int w, int h, int tint) {
+            base.blit(handle, x, y, w, h, Look.alpha(tint, alpha));
+        }
+
+        @Override
         public int scale() {
             return base.scale();
         }

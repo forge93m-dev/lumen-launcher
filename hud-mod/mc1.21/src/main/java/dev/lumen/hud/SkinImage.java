@@ -11,8 +11,16 @@ import java.nio.file.Path;
 public final class SkinImage {
     private static final Identifier SKIN = Identifier.of("lumenhud", "player_skin");
     private static final Identifier CAPE = Identifier.of("lumenhud", "player_cape");
+    private static final Identifier PREVIEW_SKIN = Identifier.of("lumenhud", "preview_skin");
+    private static final Identifier PREVIEW_CAPE = Identifier.of("lumenhud", "preview_cape");
     private static boolean skinOk;
     private static boolean capeOk;
+    private static boolean previewing;
+    private static boolean previewSlim;
+    private static boolean previewSkinOk;
+    private static boolean previewCapeOk;
+    private static int previewSkinHash;
+    private static int previewCapeHash;
     private static boolean skinRegistered;
     private static boolean capeRegistered;
 
@@ -24,18 +32,47 @@ public final class SkinImage {
 
     /** The texture to draw the local player with, or null for the normal skin. */
     public static Identifier skin() {
+        if (previewing) return previewSkinOk ? PREVIEW_SKIN : null;
         check();
         return skinOk ? SKIN : null;
     }
 
     /** The local player's cape texture, or null for the normal cape. */
     public static Identifier cape() {
+        if (previewing) return previewCapeOk ? PREVIEW_CAPE : null;
         check();
         return capeOk ? CAPE : null;
     }
 
     public static boolean slim() {
-        return SkinConfig.slim;
+        return previewing ? previewSlim : SkinConfig.slim;
+    }
+
+    /** Until {@link #endPreview()}, the local player is drawn wearing these pictures (null: the game's own) instead of the chosen ones. */
+    public static void preview(int[] skin, boolean slim, int[] cape) {
+        previewSlim = slim;
+        previewSkinOk = skin != null && previewTexture(PREVIEW_SKIN, skin, 64, 64, true);
+        previewCapeOk = cape != null && previewTexture(PREVIEW_CAPE, cape, 64, 32, false);
+        previewing = true;
+    }
+
+    public static void endPreview() {
+        previewing = false;
+    }
+
+    private static boolean previewTexture(Identifier id, int[] pixels, int w, int h, boolean isSkin) {
+        int hash = java.util.Arrays.hashCode(pixels);
+        if ((isSkin ? previewSkinHash : previewCapeHash) == hash) return true;
+        try {
+            NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(Png.encode(pixels, w, h)));
+            SkinTexture.register(id, img);
+            if (isSkin) previewSkinHash = hash;
+            else previewCapeHash = hash;
+            return true;
+        } catch (Exception e) {
+            LumenHud.LOG.warn("Could not make the preview texture", e);
+            return false;
+        }
     }
 
     private static void reload() {

@@ -67,6 +67,15 @@ public final class Icons {
         int s = g.scale();
         int size = units * s;
         float[] mask = MASKS.computeIfAbsent(name + "|" + size, k -> rasterize(ICONS.get(name), size));
+        int tex = g.texture("icon" + name + "|" + size, () -> {
+            int[] white = new int[size * size];
+            for (int i = 0; i < white.length; i++) white[i] = (Math.round(255 * mask[i]) << 24) | 0xFFFFFF;
+            return white;
+        }, size, size);
+        if (tex >= 0) {
+            g.blit(tex, x, y, units, units, color);
+            return;
+        }
         int alpha = color >>> 24;
         int rgb = color & 0xFFFFFF;
         int[] px = new int[size * size];

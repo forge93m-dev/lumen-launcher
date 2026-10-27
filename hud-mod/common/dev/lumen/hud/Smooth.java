@@ -62,17 +62,33 @@ final class Smooth {
         int n = r * s;
         int alpha = color >>> 24;
         int rgb = color & 0xFFFFFF;
-        int[] px = new int[n * n];
         for (int quadrant = 0; quadrant < 4; quadrant++) {
             boolean right = (quadrant & 1) != 0;
             boolean bottom = quadrant >= 2;
+            int cx = right ? x + w - r : x, cy = bottom ? y + h - r : y;
+            final int q = quadrant;
+            int tex = g.texture("corner" + r + "x" + s + "q" + q, () -> {
+                int[] white = new int[n * n];
+                for (int j = 0; j < n; j++) {
+                    for (int i = 0; i < n; i++) {
+                        float c = cov[(bottom ? n - 1 - j : j) * n + (right ? n - 1 - i : i)];
+                        white[j * n + i] = (Math.round(255 * c) << 24) | 0xFFFFFF;
+                    }
+                }
+                return white;
+            }, n, n);
+            if (tex >= 0) {
+                g.blit(tex, cx, cy, r, r, color);
+                continue;
+            }
+            int[] px = new int[n * n];
             for (int j = 0; j < n; j++) {
                 for (int i = 0; i < n; i++) {
                     float c = cov[(bottom ? n - 1 - j : j) * n + (right ? n - 1 - i : i)];
                     px[j * n + i] = c >= 1 ? color : c <= 0 ? 0 : (Math.round(alpha * c) << 24) | rgb;
                 }
             }
-            g.pixels(px, n, n, right ? x + w - r : x, bottom ? y + h - r : y);
+            g.pixels(px, n, n, cx, cy);
         }
     }
 }

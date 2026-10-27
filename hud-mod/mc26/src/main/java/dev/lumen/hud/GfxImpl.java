@@ -1,6 +1,10 @@
 package dev.lumen.hud;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
@@ -22,6 +26,57 @@ final class GfxImpl implements Gfx {
     @Override
     public void text(String s, int x, int y, int argb, boolean shadow) {
         g.text(font, UiFont.of(s), x, y, argb, shadow);
+    }
+
+    @Override
+    public boolean player(int x1, int y1, int x2, int y2, double turn, boolean preview, int[] skin, boolean slim, int[] cape) {
+        net.minecraft.client.player.LocalPlayer p = Minecraft.getInstance().player;
+        if (p == null) return false;
+        // an independent render state: nothing about the real player is turned, equipped or changed
+        net.minecraft.world.entity.player.PlayerSkin look = SkinImage.look(p, preview, skin, slim, cape);
+        net.minecraft.client.renderer.entity.state.AvatarRenderState state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+        state.entityType = p.getType(); // EntityType.PLAYER is called EntityTypes.PLAYER in later versions
+        state.skin = look;
+        state.boundingBoxWidth = 0.6f;
+        state.boundingBoxHeight = 1.8f;
+        state.eyeHeight = 1.62f;
+        state.scale = state.ageScale = 1;
+        state.pose = net.minecraft.world.entity.Pose.STANDING;
+        state.bodyRot = 180;
+        state.showHat = state.showJacket = state.showLeftPants = state.showRightPants = state.showLeftSleeve = state.showRightSleeve = true;
+        state.showCape = look.cape() != null;
+        state.capeFlap = 6;
+        state.lightCoords = 0xF000F0;
+        float scale = Math.min((y2 - y1) / 2.15f, (x2 - x1) / 1.25f);
+        g.entity(state, scale, new org.joml.Vector3f(0, 0.9f, 0), new org.joml.Quaternionf().rotateZ((float) Math.PI).rotateY((float) turn),
+                new org.joml.Quaternionf().rotateX((float) Math.toRadians(-5)), x1, y1, x2, y2);
+        return true;
+    }
+
+    @Override
+    public int texture(String key, java.util.function.Supplier<int[]> argb, int w, int h) {
+        int known = UiTextures.lookup(key);
+        if (known != UiTextures.UNKNOWN) return known;
+        try {
+            Identifier id = Identifier.fromNamespaceAndPath("lumenhud", UiTextures.path(UiTextures.count()));
+            NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(Png.encode(argb.get(), w, h)));
+            Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(() -> "lumenhud ui", img));
+            return UiTextures.add(key, w, h);
+        } catch (Exception e) {
+            LumenHud.LOG.warn("Could not upload {}", key, e);
+            UiTextures.failed(key);
+            return -1;
+        }
+    }
+
+    private static int nextHandle() {
+        return UiTextures.count();
+    }
+
+    @Override
+    public void blit(int handle, int x, int y, int w, int h, int tint) {
+        int[] size = UiTextures.size(handle);
+        g.blit(RenderPipelines.GUI_TEXTURED, Identifier.fromNamespaceAndPath("lumenhud", UiTextures.path(handle)), x, y, 0f, 0f, w, h, size[0], size[1], size[0], size[1], tint);
     }
 
     @Override
