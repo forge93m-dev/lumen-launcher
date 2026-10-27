@@ -97,10 +97,10 @@ for (const version of VERSIONS) {
     assert.ok(drag && /drag OK/.test(drag), `dragging an element in the editor must work: ${drag || 'no drag result in the log'}`);
     const shots = path.join(instances.dirOf(inst.id), 'screenshots');
     const files = fs.existsSync(shots) ? fs.readdirSync(shots).filter((f) => f.endsWith('.png')) : [];
-    assert.equal(files.length, 5, `the self-test should have taken five screenshots (skin, HUD, layout editor, menu with a picture, menu with a gradient); log tail:\n${lines.slice(-8).join('\n')}`);
+    assert.equal(files.length, 6, `the self-test should have taken six screenshots (skin, HUD, layout editor, menu with a picture, menu with a gradient, cosmetics); log tail:\n${lines.slice(-8).join('\n')}`);
     if (process.env.LUMEN_SHOTS) {
       fs.mkdirSync(process.env.LUMEN_SHOTS, { recursive: true });
-      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['skin', 'hud', 'editor', 'menu', 'menu2'][i]}.png`)));
+      files.sort().forEach((f, i) => fs.copyFileSync(path.join(shots, f), path.join(process.env.LUMEN_SHOTS, `${version}-${['skin', 'hud', 'editor', 'menu', 'menu2', 'cosmetics'][i]}.png`)));
     }
     await sleep(2500);
     await instances.remove(inst.id);

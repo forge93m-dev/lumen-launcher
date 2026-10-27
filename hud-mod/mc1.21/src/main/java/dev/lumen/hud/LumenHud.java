@@ -223,7 +223,15 @@ public class LumenHud implements ClientModInitializer {
         } else if (worldTicks == 400) {
             ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
         }
-        if (worldTicks == 420) {
+        if (worldTicks == 410) { // the cosmetics page, where skins and capes are chosen
+            HudConfig.get().menuSkin = "midnight";
+            LumenMenu.startPage = 2;
+            client.setScreen(new EditScreen());
+        } else if (worldTicks == 430) {
+            ScreenshotRecorder.saveScreenshot(client.runDirectory, client.getFramebuffer(), msg -> LOG.info("selftest: {}", msg.getString()));
+            LumenMenu.startPage = 0;
+        }
+        if (worldTicks == 450) {
             client.scheduleStop();
         }
     }

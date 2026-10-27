@@ -217,7 +217,9 @@ public final class LumenMenu {
     private static final int[] TINTS = {0xFF8B5CF6, 0xFF06B6D4, 0xFFF59E0B, 0xFF10B981, 0xFFEC4899, 0xFF3B82F6};
 
     private final List<Module> modules = build();
-    private int page;
+    /** The page a new menu opens on; only the self-test changes it, to photograph the other pages. */
+    static int startPage;
+    private int page = startPage;
     private Module detail;
     private double scroll;
     private double maxScroll;
