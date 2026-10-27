@@ -13,10 +13,35 @@ const base = process.platform === 'win32'
 function realDir(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true });
-    return fs.realpathSync.native(dir);
+    const real = fs.realpathSync.native(dir);
+    return process.platform === 'win32' ? redirected(real) : real;
   } catch {
     return dir;
   }
+}
+
+// realpath does not always show the redirect (it does not on newer Windows builds). Find out by writing a marker file:
+// if it shows up under %LOCALAPPDATA%\Packages\<app>\LocalCache\Roaming\..., that is where Java will see the folder.
+function redirected(dir) {
+  const roaming = process.env.APPDATA;
+  const local = process.env.LOCALAPPDATA;
+  if (!roaming || !local) return dir;
+  const rel = path.relative(roaming, dir);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return dir;
+  const marker = path.join(dir, `.where-${process.pid}-${Date.now()}`);
+  try {
+    fs.writeFileSync(marker, '');
+    const packages = path.join(local, 'Packages');
+    for (const app of fs.readdirSync(packages)) {
+      const candidate = path.join(packages, app, 'LocalCache', 'Roaming', rel);
+      if (fs.existsSync(path.join(candidate, path.basename(marker)))) return candidate;
+    }
+  } catch {
+    // no Packages folder, or no write access: the folder is where it says it is
+  } finally {
+    try { fs.unlinkSync(marker); } catch {}
+  }
+  return dir;
 }
 
 // LUMEN_HOME moves the whole data folder (portable installs, or a shared download cache for tests).
